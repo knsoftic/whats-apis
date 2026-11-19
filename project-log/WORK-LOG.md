@@ -65,3 +65,9 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Wrote a step-by-step Hindi guide as a Claude Doc: [whats-apis.com — aaPanel Installation Guide](https://claude.ai/artifact/Wdxy1F22e2iGPv5zKHosrP).
 - Covers aaPanel software, PHP 8.3 extensions and disabled functions (`putenv`, `proc_open`, `pcntl_*`), website + DB + SSL, code upload, `.env` for production, Nginx running dir / rewrite / Reverb proxy, Supervisor daemons, cron, Meta webhook, checklist, troubleshooting, updates and backups.
 - **Result:** ✅ Guide ready. The server install itself has not been done yet (the user runs it).
+
+### 2026-11-19 · Git + one-command installer
+- `deploy/install-aapanel.sh`: one command that installs **and** updates on aaPanel. It does 12 steps: checks, re-enables PHP functions, Composer/Node, clone/pull, composer, `.env`, migrate/seed, npm build, permissions, Nginx (/public, rewrite, Reverb proxy), Supervisor (queue + Reverb), cron, then a health check.
+- Syntax checked (`bash -n`). The Nginx-insert and php.ini edits were dry-tested on sample files. **Not yet run on the real server.**
+- Local git repo initialised (`main`); `.env`, `vendor`, `node_modules`, `public/build` and `.claude` are excluded. Initial commit `51cc0fd`.
+- GitHub repo `knsoftic/whats-apis` (public, as requested): waiting for it to be created on github.com before pushing.

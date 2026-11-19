@@ -58,6 +58,7 @@
 | [VPS production deployment (Nginx, SSL, Supervisor, Reverb, cron)](../docs/VPS-DEPLOYMENT.md) | ✅ |
 | [Meta Developer Console setup (App, WABA, Phone Number ID, token, webhook)](../docs/META-SETUP.md) | ✅ |
 | [**aaPanel installation guide for whats-apis.com** (Claude Doc, Hindi)](https://claude.ai/artifact/Wdxy1F22e2iGPv5zKHosrP) — path `/www/wwwroot/whats-apis.com` | ✅ |
+| [One-command installer / updater for aaPanel](../deploy/install-aapanel.sh) — `bash <(curl -fsSL https://raw.githubusercontent.com/knsoftic/whats-apis/main/deploy/install-aapanel.sh)` | 🟢 written, not yet run on server |
 | [README](../README.md) | ✅ |
 
 ---
