@@ -60,8 +60,12 @@ class AppServiceProvider extends ServiceProvider
     {
         // Meta webhooks — per WhatsApp account UUID.
         RateLimiter::for('whatsapp-webhook', function (Request $request) {
-            return Limit::perMinute(config('whatsapp.webhook.rate_limit'))
-                ->by('wh:'.$request->route('account'));
+            $account = $request->route('account');
+
+            // The shared platform URL carries all Embedded Signup numbers → larger budget.
+            return $account
+                ? Limit::perMinute(config('whatsapp.webhook.rate_limit'))->by('wh:'.$account)
+                : Limit::perMinute(config('whatsapp.webhook.rate_limit') * 10)->by('wh:platform');
         });
 
         // Dashboard message sending — per user.

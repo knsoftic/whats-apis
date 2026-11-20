@@ -25,6 +25,7 @@ final class Permissions
     public const TEMPLATES_SYNC = 'templates.sync';
     public const TEMPLATES_SEND = 'templates.send';
     public const ACTIVITY_VIEW = 'activity.view';
+    public const SETTINGS_MANAGE = 'settings.manage';     // Meta Tech Provider app settings (Super Admin)
 
     /**
      * @return array<int, string>
@@ -45,6 +46,7 @@ final class Permissions
             self::TEMPLATES_SYNC,
             self::TEMPLATES_SEND,
             self::ACTIVITY_VIEW,
+            self::SETTINGS_MANAGE,
         ];
     }
 
@@ -57,7 +59,7 @@ final class Permissions
     {
         return [
             self::ROLE_SUPER_ADMIN => self::all(),
-            self::ROLE_ADMIN => array_values(array_diff(self::all(), [self::USERS_MANAGE])),
+            self::ROLE_ADMIN => array_values(array_diff(self::all(), [self::USERS_MANAGE, self::SETTINGS_MANAGE])),
             self::ROLE_AGENT => [
                 self::DASHBOARD_VIEW,
                 self::CHATS_VIEW,

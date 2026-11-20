@@ -43,6 +43,9 @@ class WhatsAppAccount extends Model
         'created_by',
     ];
 
+    public const ONBOARD_MANUAL = 'manual';
+    public const ONBOARD_EMBEDDED = 'embedded_signup';
+
     /**
      * Secrets never leave the server (JSON / arrays / broadcasting).
      */
@@ -200,6 +203,11 @@ class WhatsAppAccount extends Model
     public function isOperational(): bool
     {
         return $this->is_active && $this->isApiConnected() && $this->isWebhookVerified();
+    }
+
+    public function isEmbeddedSignup(): bool
+    {
+        return $this->onboarding_method === self::ONBOARD_EMBEDDED;
     }
 
     public function label(): string

@@ -2,10 +2,12 @@ import './bootstrap';
 
 import Alpine from 'alpinejs';
 import chatApp from './chat';
+import embeddedSignup from './embedded-signup';
 
 window.Alpine = Alpine;
 
 Alpine.data('chatApp', chatApp);
+Alpine.data('embeddedSignup', embeddedSignup);
 
 /**
  * JSON fetch helper with CSRF + same-origin cookies.

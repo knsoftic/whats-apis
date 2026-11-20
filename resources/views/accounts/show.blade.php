@@ -54,6 +54,35 @@
         @endforeach
     </div>
 
+    @if ($account->isEmbeddedSignup() || $account->registration_status)
+        <div @class(['mt-4 flex flex-wrap items-center gap-3 rounded-2xl border px-5 py-4',
+            'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-500/5' => in_array($account->registration_status, ['registered', 'coexistence', 'not_required'], true),
+            'border-rose-200 bg-rose-50/60 dark:border-rose-900 dark:bg-rose-500/5' => $account->registration_status === 'failed',
+            'border-slate-200 dark:border-slate-800' => ! $account->registration_status])>
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-slate-900 dark:text-white">
+                    <x-badge color="blue">Embedded Signup</x-badge>
+                    <span class="ml-2">Cloud API registration:
+                        {{ match ($account->registration_status) { 'registered' => 'registered', 'coexistence' => 'WhatsApp Business app (coexistence)', 'failed' => 'not registered', default => 'unknown' } }}</span>
+                </p>
+                @if ($account->registration_message)
+                    <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ $account->registration_message }}</p>
+                @endif
+            </div>
+            @if (! in_array($account->registration_status, ['registered', 'coexistence'], true))
+                <form method="POST" action="{{ route('accounts.register', $account) }}" class="flex items-end gap-2">
+                    @csrf
+                    <div>
+                        <label class="form-label" for="reg_pin">6-digit PIN</label>
+                        <input id="reg_pin" name="pin" class="form-input w-32 font-mono tracking-widest" inputmode="numeric" maxlength="6" pattern="\d{6}" required>
+                    </div>
+                    <x-button>Register number</x-button>
+                </form>
+                @error('pin')<p class="form-error w-full">{{ $message }}</p>@enderror
+            @endif
+        </div>
+    @endif
+
     <div class="mt-4 flex flex-wrap gap-2">
         <form method="POST" action="{{ route('accounts.test', $account) }}" x-data="{ busy: false }" @submit="busy = true">
             @csrf
@@ -71,6 +100,17 @@
 
     <div class="mt-6 grid gap-6 xl:grid-cols-2">
         {{-- Webhook setup --}}
+        @if ($account->isEmbeddedSignup())
+        <x-card title="Webhook (shared platform URL)" subtitle="Numbers connected with Embedded Signup use your Tech Provider app's single webhook.">
+            <div class="space-y-3 text-sm">
+                <p>Events for this number arrive at <code class="break-all rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">{{ route('webhooks.whatsapp.platform') }}</code>, configured once in Settings → Meta Tech Provider.</p>
+                <p class="text-slate-500">Nothing to set up per number. If messages don't arrive: check that the platform webhook is verified and click “Subscribe app to WABA” above.</p>
+                @can(\App\Support\Permissions::SETTINGS_MANAGE)
+                    <x-button size="sm" variant="secondary" icon="key" :href="route('settings.meta')">Platform webhook settings</x-button>
+                @endcan
+            </div>
+        </x-card>
+        @else
         <x-card title="Webhook setup in Meta" subtitle="App Dashboard → WhatsApp → Configuration → Webhook → Edit">
             <div class="space-y-4 text-sm">
                 <div>
@@ -106,6 +146,7 @@
                 </ol>
             </div>
         </x-card>
+        @endif
 
         {{-- Credentials --}}
         <x-card title="Credentials & identifiers" subtitle="Secrets are encrypted at rest and masked here.">

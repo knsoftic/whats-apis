@@ -11,6 +11,7 @@
         ['label' => 'WhatsApp Accounts', 'route' => 'accounts.index', 'active' => 'accounts.*', 'icon' => 'phone', 'can' => P::ACCOUNTS_MANAGE],
         ['label' => 'Users', 'route' => 'users.index', 'active' => 'users.*', 'icon' => 'users', 'can' => P::USERS_MANAGE],
         ['label' => 'Activity Logs', 'route' => 'activity-logs.index', 'active' => 'activity-logs.*', 'icon' => 'activity', 'can' => P::ACTIVITY_VIEW],
+        ['label' => 'Meta Tech Provider', 'route' => 'settings.meta', 'active' => 'settings.*', 'icon' => 'key', 'can' => P::SETTINGS_MANAGE],
     ];
     $visible = fn ($items) => array_filter($items, fn ($i) => Route::has($i['route']) && auth()->user()->can($i['can']));
     $nav = $visible($nav);

@@ -3,7 +3,9 @@
 use App\Http\Controllers\Chat\ChatController;
 use App\Http\Controllers\Chat\MessageController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\EmbeddedSignupController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\MetaSettingsController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\WhatsAppAccountController;
 use App\Support\Permissions as P;
@@ -19,6 +21,13 @@ Route::middleware(['auth'])->group(function () {
 
     // ---- WhatsApp Accounts (Phase 2) --------------------------------------
     Route::middleware('permission:'.P::ACCOUNTS_MANAGE)->group(function () {
+        // Embedded Signup ("Connect with Meta") — must be declared before the resource's {account} routes.
+        Route::get('whatsapp-accounts/connect', [EmbeddedSignupController::class, 'show'])->name('accounts.connect');
+        Route::post('whatsapp-accounts/embedded-signup', [EmbeddedSignupController::class, 'store'])
+            ->middleware('throttle:whatsapp-api-check')->name('accounts.embedded-signup');
+        Route::post('whatsapp-accounts/{account}/register', [EmbeddedSignupController::class, 'register'])
+            ->middleware('throttle:whatsapp-api-check')->name('accounts.register');
+
         Route::resource('whatsapp-accounts', WhatsAppAccountController::class)
             ->names('accounts')
             ->parameters(['whatsapp-accounts' => 'account']);
@@ -77,6 +86,14 @@ Route::middleware(['auth'])->group(function () {
             ->middleware(['permission:'.P::TEMPLATES_SYNC, 'throttle:whatsapp-api-check'])->name('templates.sync');
         Route::post('templates/{template}/send', [TemplateController::class, 'send'])
             ->middleware(['permission:'.P::TEMPLATES_SEND, 'throttle:whatsapp-send'])->name('templates.send');
+    });
+
+    // ---- Settings → Meta Tech Provider (Super Admin) -------------------------
+    Route::middleware('permission:'.P::SETTINGS_MANAGE)->group(function () {
+        Route::get('settings/meta', [MetaSettingsController::class, 'edit'])->name('settings.meta');
+        Route::put('settings/meta', [MetaSettingsController::class, 'update'])->name('settings.meta.update');
+        Route::post('settings/meta/test', [MetaSettingsController::class, 'test'])
+            ->middleware('throttle:whatsapp-api-check')->name('settings.meta.test');
     });
 
     // ---- Media (private storage, authorised) --------------------------------

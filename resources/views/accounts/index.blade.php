@@ -1,15 +1,28 @@
 <x-app-layout title="WhatsApp Accounts">
-    <x-page-header title="WhatsApp Accounts" description="Official WhatsApp Business Cloud API numbers connected with your Meta credentials.">
-        <x-button :href="route('accounts.create')" icon="plus">Add WhatsApp account</x-button>
+    <x-page-header title="WhatsApp Accounts" description="Official WhatsApp Business Cloud API numbers — connect with Meta (Embedded Signup) or add credentials manually.">
+        <x-button :href="route('accounts.connect')" icon="link">Connect with Meta</x-button>
+        <x-button variant="secondary" :href="route('accounts.create')" icon="plus">Add manually</x-button>
     </x-page-header>
 
     @if ($accounts->isEmpty())
-        <x-card>
-            <x-empty-state icon="phone" title="No WhatsApp numbers connected"
-                           description="Add your WABA ID, Phone Number ID, access token and App Secret from the Meta Developer Console. Nothing is connected until Meta confirms API access and verifies the webhook.">
-                <x-button :href="route('accounts.create')" icon="plus">Add WhatsApp account</x-button>
-            </x-empty-state>
-        </x-card>
+        <div class="grid gap-5 md:grid-cols-2">
+            <x-card>
+                <div class="flex h-full flex-col">
+                    <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1877F2]/10 text-[#1877F2]"><x-icon name="link" class="h-6 w-6" /></span>
+                    <h3 class="mt-3 font-semibold text-slate-900 dark:text-white">Connect with Meta <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">Recommended</span></h3>
+                    <p class="mt-1 flex-1 text-sm text-slate-500">Embedded Signup: log in with Facebook, choose the WhatsApp Business Account and verify the number. Tokens, webhooks and registration are handled automatically.</p>
+                    <x-button class="mt-4 self-start" :href="route('accounts.connect')" icon="link">Connect with Meta</x-button>
+                </div>
+            </x-card>
+            <x-card>
+                <div class="flex h-full flex-col">
+                    <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800"><x-icon name="pencil" class="h-6 w-6" /></span>
+                    <h3 class="mt-3 font-semibold text-slate-900 dark:text-white">Add manually</h3>
+                    <p class="mt-1 flex-1 text-sm text-slate-500">Enter WABA ID, Phone Number ID, a permanent access token and App Secret from your own Meta app. Nothing counts as connected until Meta confirms API access and the webhook.</p>
+                    <x-button variant="secondary" class="mt-4 self-start" :href="route('accounts.create')" icon="plus">Add manually</x-button>
+                </div>
+            </x-card>
+        </div>
     @else
         <div class="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
             @foreach ($accounts as $account)
@@ -32,7 +45,11 @@
                         </div>
                     </div>
 
-                    <div class="mt-4">@include('accounts.partials.status-badges', ['account' => $account])</div>
+                    <div class="mt-4 flex flex-wrap gap-1.5">
+                        <x-badge :color="$account->isEmbeddedSignup() ? 'blue' : 'slate'">{{ $account->isEmbeddedSignup() ? 'Embedded Signup' : 'Manual' }}</x-badge>
+                        @if ($account->registration_status === 'failed')<x-badge color="red" dot>Not registered</x-badge>@endif
+                    </div>
+                    <div class="mt-2">@include('accounts.partials.status-badges', ['account' => $account])</div>
 
                     <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
                         <div class="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/60">

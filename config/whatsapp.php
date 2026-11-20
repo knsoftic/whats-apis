@@ -15,6 +15,18 @@ return [
     // Used for new accounts; each account can override it.
     'default_graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v26.0'),
 
+    /*
+    | Your Meta app as a Tech Provider — WhatsApp Embedded Signup + shared webhook.
+    | Normally entered on Settings → Meta Tech Provider (encrypted in the DB);
+    | these .env values are only a fallback.
+    */
+    'platform' => [
+        'app_id' => env('META_APP_ID'),
+        'app_secret' => env('META_APP_SECRET'),
+        'es_config_id' => env('META_ES_CONFIG_ID'),
+        'webhook_verify_token' => env('META_WEBHOOK_VERIFY_TOKEN'),
+    ],
+
     // Send appsecret_proof (HMAC of token with App Secret) on every Graph API call.
     // Confirms the saved App Secret belongs to the token's app.
     'appsecret_proof' => (bool) env('WHATSAPP_APPSECRET_PROOF', true),

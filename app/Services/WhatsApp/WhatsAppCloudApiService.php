@@ -86,6 +86,18 @@ class WhatsAppCloudApiService
     }
 
     /**
+     * POST /{phone-number-id}/register — activates the number on Cloud API.
+     * The 6-digit PIN becomes the number's two-step verification PIN.
+     */
+    public function registerPhoneNumber(string $pin): bool
+    {
+        return (bool) ($this->post($this->account->phone_number_id.'/register', [
+            'messaging_product' => 'whatsapp',
+            'pin' => $pin,
+        ])['success'] ?? false);
+    }
+
+    /**
      * Verifies that the token works, the phone number belongs to the WABA,
      * the App Secret matches the token's app (appsecret_proof), and reports
      * whether an app is subscribed to the WABA's webhooks.

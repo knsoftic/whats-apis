@@ -1,6 +1,32 @@
 # Meta Developer Console setup (WhatsApp Business Cloud API)
 
-This guide gets the 8 values the **WhatsApp Accounts → Add** form needs, and connects Meta's webhook to this app.
+There are **two ways** to connect a number:
+
+| | Option A — Connect with Meta (Embedded Signup) | Option B — Add manually |
+|---|---|---|
+| Who | You are a Meta **Tech Provider**; customers onboard themselves | You own the Meta app and the number |
+| Steps for the business | Click "Connect with Meta", log in with Facebook, pick/create WABA, verify number | Copy WABA ID, Phone Number ID, token, App Secret into the form |
+| Token | Business token from Meta (automatic) | Permanent System User token |
+| Webhook | One shared URL `https://YOUR-DOMAIN/api/webhooks/whatsapp`, set once | Per-number URL `…/api/webhooks/whatsapp/<uuid>` |
+
+## Option A — Embedded Signup (Tech Provider), one-time setup
+1. **Meta app (Business type)** with the **WhatsApp** and **Facebook Login for Business** products; Tech Provider onboarding / App Review done for `whatsapp_business_management` and `whatsapp_business_messaging`.
+2. **Facebook Login for Business → Settings** → Yes for: Client OAuth login, Web OAuth login, Enforce HTTPS, Embedded Browser OAuth Login, Strict mode, **Login with the JavaScript SDK**. Add `https://YOUR-DOMAIN` to *Allowed domains for the JavaScript SDK* and *Valid OAuth Redirect URIs* (HTTPS only).
+3. **Facebook Login for Business → Configurations** → create from the template *WhatsApp Embedded Signup Configuration…* (or custom with the **WhatsApp Embedded Signup** login variation). Copy the **Configuration ID**.
+4. In this app: **Meta Tech Provider** (sidebar, Super Admin) → App ID, App Secret, Configuration ID, Verify token → Save → **Test App ID + App Secret**.
+5. Meta app → **WhatsApp → Configuration → Webhook**: Callback URL `https://YOUR-DOMAIN/api/webhooks/whatsapp` + the same Verify token → **Verify and save**. Subscribe fields `messages`, `account_update` (+ optional `message_template_status_update`, `phone_number_quality_update`).
+
+### Connecting a number (each customer)
+**WhatsApp Accounts → Connect with Meta** → set a 6-digit PIN → **Connect WhatsApp with Facebook** → finish the Meta popup.
+The app then (server-side): exchanges the 5-minute code for a business token, checks the shared WABA with `debug_token`, subscribes the app to the WABA webhooks, registers the number (`POST /{phone-id}/register` with the PIN — skipped for WhatsApp Business app "coexistence" numbers), saves the account and runs the API check. Registration can be retried from the account page. The business must add a **payment method** in WhatsApp Manager before sending templates.
+
+Embedded Signup **v4** is used (v2/v3 were retired by Meta on 15 Oct 2026).
+
+---
+
+## Option B — Add manually
+
+This part gets the 8 values the **WhatsApp Accounts → Add manually** form needs, and connects Meta's webhook to this app.
 Only Meta's **official Cloud API** is used — no QR code, no WhatsApp Web, no unofficial library.
 
 | Form field | Where it comes from |

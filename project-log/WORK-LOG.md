@@ -81,3 +81,9 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Server has PHP 8.4 → installer now auto-detects the newest aaPanel PHP (commit `090d7d3`); all 91 packages allow 8.4.
 - Run 1: steps 1–10 ✅ (incl. Nginx updated + reloaded). Step 11 ❌ "Failed at line 286": `find_sup_conf` returned non-zero when no supervisord.conf existed (`set -e` bug in the script).
 - Fixed (commit `c677e7e`) + added `php artisan admin:reset-password {email}`. Re-run needed from step 1 (script is idempotent).
+
+### 2026-11-20 · Phase 8 — Embedded Signup (Tech Provider)
+- Read Meta's current Embedded Signup docs (v4; v2/v3 retired 15 Oct 2026).
+- Built: Meta Tech Provider settings (encrypted), "Connect with Meta" page (FB JS SDK + ES v4), server onboarding (code exchange, debug_token WABA check, subscribed_apps, /register with PIN, coexistence), shared platform webhook `/api/webhooks/whatsapp`, account page registration retry. Manual entry unchanged.
+- Bug found by a test: second `Http::fake` did not override the first (test-only) → used a response sequence.
+- **Result:** ✅ 180 tests pass (704 assertions). UI checked in browser (accounts page, settings page). Live Embedded Signup not tested — needs the user's Tech Provider app on https.
