@@ -145,3 +145,7 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Cause: the URL uses the account UUID, which only existed after saving.
 - Fix: the UUID is generated when the form opens and kept on save; a new Webhook card shows the Callback URL and Verify token with Copy buttons and the setup steps.
 - **Result:** ✅ 262 tests pass. Checked in the browser.
+
+### 2026-11-20 · Live webhook verify failed — diagnosis + form guidance
+- Meta: “callback URL or verify token couldn't be validated”. The live probe gave 404 for that account id: the account was never saved (the URL came from an unsaved or failed add form). The server and routes are fine (the shared webhook returns 403 as expected).
+- Added the form notice and the link to an already-added number. Tests pass.

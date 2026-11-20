@@ -47,6 +47,17 @@
                             <input id="phone_number_id" name="phone_number_id" class="form-input font-mono" inputmode="numeric" value="{{ old('phone_number_id', $account->phone_number_id) }}" required>
                             <p class="form-help">The numeric ID shown under the number — not the phone number itself.</p>
                             @error('phone_number_id')<p class="form-error">{{ $message }}</p>@enderror
+                            @php
+                                // Number already added (and visible to this user)? Point to it — its Callback URL is the one Meta needs.
+                                $existing = ! $editing && $errors->has('phone_number_id') && old('phone_number_id')
+                                    ? auth()->user()->accessibleAccounts()->where('phone_number_id', old('phone_number_id'))->first()
+                                    : null;
+                            @endphp
+                            @if ($existing)
+                                <a href="{{ route('accounts.show', $existing) }}" class="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-200">
+                                    <x-icon name="arrow-up-right" class="h-4 w-4" /> Already added as “{{ $existing->name }}” — open it to copy its Callback URL
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </x-card>
@@ -102,6 +113,11 @@
                     <x-card title="4. Webhook — paste into Meta" subtitle="developers.facebook.com → your app → WhatsApp → Configuration → Webhook → Edit.">
                         @unless ($editing)
                             <input type="hidden" name="uuid" value="{{ $webhookUuid }}">
+                            <div class="mb-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                                <x-icon name="warning" class="h-5 w-5 shrink-0" />
+                                <p>This URL is new for this form and <strong>starts working only after you click “Save &amp; validate”</strong>. Is this number already added?
+                                    Don't add it again — open it in <a href="{{ route('accounts.index') }}" class="font-semibold underline">WhatsApp Accounts</a> and copy <em>its</em> Callback URL and verify token there.</p>
+                            </div>
                         @endunless
                         <div class="grid gap-5" x-data="{ copied: null, copy(text, key) { navigator.clipboard?.writeText(text).catch(() => {}); this.copied = key; setTimeout(() => this.copied = null, 1500); } }">
                             <div>

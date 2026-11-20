@@ -61,3 +61,12 @@ Admins can add, edit, remove, enable/disable multiple official WhatsApp Cloud AP
 - Fix: the form now creates the id up front and shows a **“4. Webhook — paste into Meta”** card. It has the Callback URL and the Verify token, each with a Copy button, plus 3 steps: Save → Meta “Verify and save” → subscribe to `messages`.
 - Saving keeps exactly that id, so the URL copied into Meta keeps working. The id must be a unique UUID and cannot be changed when editing. The edit form shows the same Callback URL.
 - Test: `WhatsAppAccountTest::test_callback_url_is_shown_before_saving_and_kept_after_saving` (the Meta GET verify works on the pre-shown URL). Checked in the browser: card, Generate token, Copy. **262 passed.**
+
+## Update 2026-11-20 — “Callback URL or verify token couldn't be validated” (live)
+- The user's Meta screen rejected `https://whats-apis.com/api/webhooks/whatsapp/faeb5556-…`.
+- Probed the live URL with a deliberately wrong token. It returned **404**, and so did a random id, while the shared `/api/webhooks/whatsapp` URL returned Laravel's 403. So the server and app work, but **no account with that id is saved**. aaPanel's Nginx replaces Laravel 404s with its own “404 Not Found nginx” page.
+- Likely cause: the URL was copied from a fresh “Add account” form that was never saved, or whose save failed because the number already exists. Each new form gets a new id.
+- Product fixes:
+  - an amber notice on the form: the URL works only after “Save & validate”; if the number is already added, copy its own URL from its account page;
+  - after a “Phone Number ID already connected” error, a link to the existing account (only if the user can access it).
+- Test extended (warning, duplicate link, unsaved URL → 404).

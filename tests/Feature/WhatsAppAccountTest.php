@@ -61,6 +61,18 @@ class WhatsAppAccountTest extends TestCase
 
         // The edit form shows the same Callback URL.
         $this->actingAs($admin)->get("/whatsapp-accounts/{$account->id}/edit")->assertSee(route('webhooks.whatsapp.verify', ['account' => $uuid]), false);
+
+        // Adding the same number again → warning on the form + link to the existing account (its URL is the right one).
+        $this->actingAs($admin)->get('/whatsapp-accounts/create')->assertSee('starts working only after you click');
+        $this->actingAs($admin)->from('/whatsapp-accounts/create')
+            ->post('/whatsapp-accounts', $this->accountPayload())
+            ->assertSessionHasErrors('phone_number_id');
+        $this->actingAs($admin)->get('/whatsapp-accounts/create')
+            ->assertSee('Already added as “Sales India”', false)
+            ->assertSee(route('accounts.show', $account), false);
+
+        // A Callback URL that was never saved is unknown to the app.
+        $this->get('/api/webhooks/whatsapp/'.\Illuminate\Support\Str::uuid().'?hub_mode=subscribe&hub_verify_token=my-verify-token-123&hub_challenge=1')->assertNotFound();
     }
 
     public function test_account_is_saved_but_marked_failed_when_meta_rejects_credentials(): void
