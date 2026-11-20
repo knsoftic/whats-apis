@@ -93,3 +93,8 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Company, contact email, address, jurisdiction and effective date come from `LEGAL_*` env values (`config/legal.php`).
 - Content is a solid template written for a WhatsApp Cloud API SaaS. It is not legal advice and should be reviewed for the business.
 - **Result:** ✅ 183 tests pass. Pages checked in browser.
+
+### 2026-11-20 · Installer fix: false "mbstring missing"
+- Server run stopped at step 1: "PHP extension 'mbstring' missing" although the same check passed earlier.
+- Cause: `php -m | grep -q` under `set -o pipefail`. `grep -q` exits on the first match, `php -m` can get SIGPIPE (exit 141) → random false failure.
+- Fix (commit `9b1cf58`): capture output first, then grep (also for the Redis and port checks).
