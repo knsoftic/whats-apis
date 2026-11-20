@@ -158,3 +158,9 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
   - login and register pages show an ownership + anti-phishing note (“independent service … never ask for your WhatsApp code or Facebook password”).
 - Still needed from the user: rebrand in Settings (name/logo/colour), saved landing texts, then **Google Search Console → Security issues → Request review**.
 - **Result:** ✅ 262 tests pass.
+
+### 2026-11-20 · Webhook verify still failing (second URL)
+- The live probe of the new Callback URL (`704acee9-…`) gave 404 again: no saved account with that id. The live site runs the latest PHP code (new landing defaults are served), so it is not stale code.
+- Likely cause: a fresh “Add account” form for a number that is already saved, so the save is blocked and its URL never exists.
+- Added `php artisan whatsapp:webhooks`, which prints the exact Callback URL + verify token of every saved account, and a log warning when Meta calls an unknown account id.
+- **Result:** ✅ tests pass.

@@ -71,8 +71,17 @@ class WhatsAppAccountTest extends TestCase
             ->assertSee('Already added as “Sales India”', false)
             ->assertSee(route('accounts.show', $account), false);
 
-        // A Callback URL that was never saved is unknown to the app.
+        // A Callback URL that was never saved is unknown to the app (and is logged).
+        \Illuminate\Support\Facades\Log::spy();
         $this->get('/api/webhooks/whatsapp/'.\Illuminate\Support\Str::uuid().'?hub_mode=subscribe&hub_verify_token=my-verify-token-123&hub_challenge=1')->assertNotFound();
+        \Illuminate\Support\Facades\Log::shouldHaveReceived('warning')->withArgs(fn ($message) => str_contains($message, 'unknown account id'))->once();
+
+        // Server command prints the right URL + token for every saved account.
+        $this->artisan('whatsapp:webhooks')
+            ->expectsOutputToContain('Sales India')
+            ->expectsOutputToContain('Callback URL : '.route('webhooks.whatsapp.verify', ['account' => $uuid]))
+            ->expectsOutputToContain('Verify token : my-verify-token-123')
+            ->assertSuccessful();
     }
 
     public function test_account_is_saved_but_marked_failed_when_meta_rejects_credentials(): void

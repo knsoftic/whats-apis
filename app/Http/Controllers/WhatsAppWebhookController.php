@@ -27,6 +27,9 @@ class WhatsAppWebhookController extends Controller
         $model = WhatsAppAccount::where('uuid', $account)->first();
 
         if (! $model) {
+            // Usually a Callback URL copied from an "Add account" form that was never saved.
+            Log::warning('WhatsApp webhook verification for an unknown account id — use the Callback URL shown on the saved account page (php artisan whatsapp:webhooks)', ['id' => $account]);
+
             return response('Not found', 404);
         }
 

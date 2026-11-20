@@ -26,6 +26,29 @@ Artisan::command('whatsapp:check-accounts {--id= : Only this account id}', funct
     $this->info("Checked {$accounts->count()} account(s).");
 })->purpose('Re-validate WhatsApp Cloud API credentials of all active accounts');
 
+Artisan::command('whatsapp:webhooks', function () {
+    $accounts = WhatsAppAccount::orderBy('id')->get();
+
+    if ($accounts->isEmpty()) {
+        $this->warn('No WhatsApp accounts are saved yet — add one in the dashboard and click “Save & validate” first.');
+
+        return;
+    }
+
+    foreach ($accounts as $account) {
+        $this->line("<info>#{$account->id} {$account->name}</info>  (Phone Number ID {$account->phone_number_id}, webhook: {$account->webhook_status})");
+
+        if ($account->isEmbeddedSignup()) {
+            $this->line('   Connected with Embedded Signup → uses the shared platform URL: '.route('webhooks.whatsapp.platform'));
+        } else {
+            $this->line('   Callback URL : '.$account->webhookUrl());
+            $this->line('   Verify token : '.$account->webhook_verify_token);
+        }
+
+        $this->newLine();
+    }
+})->purpose('Show each WhatsApp account\'s webhook Callback URL and verify token (paste them into Meta)');
+
 Artisan::command('admin:reset-password {email}', function (string $email) {
     $user = \App\Models\User::where('email', strtolower(trim($email)))->first();
 
