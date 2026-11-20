@@ -14,8 +14,9 @@
                 <stop offset="1" style="stop-color: rgb(var(--brand-700))" />
             </linearGradient>
         </defs>
+        {{-- Neutral monogram (no speech bubble) so the default mark is not mistaken for the WhatsApp logo. --}}
         <rect width="40" height="40" rx="11" fill="url(#{{ $gid }})" />
-        <path d="M20 9.5c-6.1 0-11 4.3-11 9.7 0 2.9 1.4 5.4 3.6 7.2L11.5 31l5.1-2.3c1.1.3 2.2.4 3.4.4 6.1 0 11-4.3 11-9.7S26.1 9.5 20 9.5Z" fill="#fff" />
-        <text x="20" y="22.6" text-anchor="middle" font-family="Figtree, Arial, sans-serif" font-size="8.5" font-weight="800" style="fill: rgb(var(--brand-700))">{{ $initials }}</text>
+        <rect x="6" y="6" width="28" height="28" rx="8" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.5" />
+        <text x="20" y="25" text-anchor="middle" font-family="Figtree, Arial, sans-serif" font-size="13" font-weight="800" fill="#fff">{{ $initials }}</text>
     </svg>
 @endif

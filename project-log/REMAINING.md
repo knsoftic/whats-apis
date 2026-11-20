@@ -35,3 +35,13 @@
 - Uploading template header media instead of using a link
 - Creating new templates from the dashboard (currently created in WhatsApp Manager, then synced)
 - Bulk / broadcast template campaigns with opt-in filtering
+
+## Google Safe Browsing warning (2026-11-20)
+Chrome shows “Dangerous site” for whats-apis.com. Steps:
+1. Update the server.
+2. Settings → General: name and logo of your own brand (not “WA”). Settings → Appearance: a colour other than green.
+3. Settings → Landing page: remove “Official WhatsApp” wording.
+4. Search Console: verify the domain, open **Security issues**, click **Request review**.
+5. Also report it on safebrowsing.google.com (report an error).
+
+Long term: a domain that does not contain “whats” is safer (Meta brand rules + phishing filters).

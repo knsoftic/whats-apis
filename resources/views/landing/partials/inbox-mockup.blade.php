@@ -50,6 +50,6 @@
     </div>
     <div class="absolute -bottom-4 right-6 hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:flex">
         <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"><x-icon name="shield" class="h-3.5 w-3.5" /></span>
-        Official Meta Cloud API
+        Built on Meta Cloud API
     </div>
 </div>

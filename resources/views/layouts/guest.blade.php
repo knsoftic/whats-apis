@@ -21,7 +21,7 @@
             </div>
         </div>
         <div class="max-w-md text-white">
-            <h2 class="text-3xl font-semibold leading-tight">All your official WhatsApp Business numbers in one inbox.</h2>
+            <h2 class="text-3xl font-semibold leading-tight">All your WhatsApp Business numbers in one inbox.</h2>
             <ul class="mt-6 space-y-3 text-brand-50">
                 <li class="flex gap-3"><x-icon name="check" class="h-5 w-5 shrink-0" /> Meta WhatsApp Cloud API — no QR codes, no unofficial libraries</li>
                 <li class="flex gap-3"><x-icon name="check" class="h-5 w-5 shrink-0" /> Real-time chat, templates, media and delivery status</li>
@@ -45,6 +45,11 @@
             <p class="mt-10 flex justify-center gap-4 text-xs text-slate-500">
                 <a href="{{ route('legal.privacy') }}" class="hover:text-slate-800 dark:hover:text-slate-300">Privacy Policy</a>
                 <a href="{{ route('legal.terms') }}" class="hover:text-slate-800 dark:hover:text-slate-300">Terms &amp; Conditions</a>
+            </p>
+            {{-- Clear ownership + anti-phishing note (this is an independent service, not WhatsApp / Meta). --}}
+            <p class="mt-3 text-center text-[11px] leading-4 text-slate-400">
+                {{ $brand->siteName() }} is an independent business software service{{ config('legal.company') && config('legal.company') !== $brand->siteName() ? ' by '.config('legal.company') : '' }}, not affiliated with WhatsApp or Meta.
+                We never ask for your WhatsApp verification code or your Facebook password.
             </p>
         </div>
     </div>

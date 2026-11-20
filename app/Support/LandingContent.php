@@ -26,12 +26,12 @@ class LandingContent
         return [
             'seo' => [
                 'title' => '',
-                'description' => 'Manage all your official WhatsApp Business numbers in one shared inbox — real-time chat, templates, bots and contacts on Meta\'s WhatsApp Cloud API.',
+                'description' => 'Manage your WhatsApp Business numbers in one shared inbox — real-time chat, templates, bots and contacts, built on Meta\'s WhatsApp Business Platform (Cloud API).',
                 'og_image' => '',
             ],
             'hero' => [
                 'enabled' => true,
-                'badge' => 'Official Meta WhatsApp Cloud API',
+                'badge' => 'Built on the WhatsApp Business Platform',
                 'title' => 'All your WhatsApp Business numbers in one smart inbox',
                 'subtitle' => 'Connect with Meta in one click, chat with customers in real time, automate replies with bots and send approved templates — without QR codes or unofficial tools.',
                 'primary_text' => 'Start free',
@@ -44,7 +44,7 @@ class LandingContent
             'stats' => [
                 'enabled' => true,
                 'items' => [
-                    ['value' => '100%', 'label' => 'Official Meta API'],
+                    ['value' => '0', 'label' => 'QR codes or unofficial tools'],
                     ['value' => '< 2 s', 'label' => 'Real-time delivery'],
                     ['value' => '24/7', 'label' => 'Bots that never sleep'],
                     ['value' => 'Multi', 'label' => 'Numbers & team members'],
@@ -53,7 +53,7 @@ class LandingContent
             'features' => [
                 'enabled' => true,
                 'title' => 'Everything your team needs on WhatsApp',
-                'subtitle' => 'Built on Meta\'s official WhatsApp Business Platform — secure, reliable and ready to scale.',
+                'subtitle' => 'Built on Meta\'s WhatsApp Business Platform (Cloud API) — secure, reliable and ready to scale.',
                 'items' => [
                     ['icon' => 'link', 'title' => 'Connect with Meta', 'text' => 'Embedded Signup connects your number in minutes. No tokens to copy.'],
                     ['icon' => 'chat', 'title' => 'Shared live inbox', 'text' => 'WhatsApp Web-style chat with delivery ticks, media, replies and search.'],
@@ -97,7 +97,7 @@ class LandingContent
                 'enabled' => true,
                 'title' => 'Frequently asked questions',
                 'items' => [
-                    ['q' => 'Is this the official WhatsApp API?', 'a' => 'Yes. We only use Meta\'s official WhatsApp Business Cloud API — no QR codes, no WhatsApp Web automation.'],
+                    ['q' => 'Which WhatsApp API do you use?', 'a' => 'Meta\'s WhatsApp Business Platform (Cloud API) — no QR codes, no WhatsApp Web automation. We are an independent software company, not WhatsApp or Meta.'],
                     ['q' => 'Do I need a Facebook account?', 'a' => 'Yes, a Facebook / Meta Business account is used to connect and verify your WhatsApp Business number.'],
                     ['q' => 'Who pays for WhatsApp messages?', 'a' => 'Meta charges conversation fees directly to the payment method in your WhatsApp Manager. Our plans cover the software.'],
                     ['q' => 'Can I use my existing number?', 'a' => 'Yes, as long as it can receive an SMS or call for verification. Numbers on the WhatsApp Business app can also be connected.'],

@@ -149,3 +149,12 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 ### 2026-11-20 · Live webhook verify failed — diagnosis + form guidance
 - Meta: “callback URL or verify token couldn't be validated”. The live probe gave 404 for that account id: the account was never saved (the URL came from an unsaved or failed add form). The server and routes are fine (the shared webhook returns 403 as expected).
 - Added the form notice and the link to an already-added number. Tests pass.
+
+### 2026-11-20 · Chrome “Dangerous site” (Google Safe Browsing) on whats-apis.com
+- Checked the live home page: only the app's own scripts, no iframes, no foreign forms or redirects, so no sign of a hack. The likely cause is a phishing false positive from brand look-alike signals: a domain with “whats”, the site name “Whats Apis”, a green chat-bubble “WA” logo, “Official WhatsApp” wording and a login form.
+- App changes:
+  - the default logo is now a neutral monogram (no speech bubble);
+  - public text no longer says “Official WhatsApp” (it says “Built on the WhatsApp Business Platform”);
+  - login and register pages show an ownership + anti-phishing note (“independent service … never ask for your WhatsApp code or Facebook password”).
+- Still needed from the user: rebrand in Settings (name/logo/colour), saved landing texts, then **Google Search Console → Security issues → Request review**.
+- **Result:** ✅ 262 tests pass.

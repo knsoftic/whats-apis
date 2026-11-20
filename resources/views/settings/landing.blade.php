@@ -240,7 +240,7 @@
                 <x-landing.section key="footer" title="Footer" description="Short text under your logo" icon="note" :toggle="false">
                     <div>
                         <label class="form-label" for="ft_text">Footer text</label>
-                        <textarea id="ft_text" rows="2" class="form-input" x-model="c.footer.text" maxlength="300" placeholder="e.g. Official WhatsApp Business solutions for growing teams."></textarea>
+                        <textarea id="ft_text" rows="2" class="form-input" x-model="c.footer.text" maxlength="300" placeholder="e.g. Business messaging tools for growing teams."></textarea>
                         <p class="form-help">Logo and name come from Settings → General. Privacy and Terms links are added automatically.</p>
                     </div>
                 </x-landing.section>
