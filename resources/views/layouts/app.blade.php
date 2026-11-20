@@ -4,19 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ? $title.' · ' : '' }}KN Softic – WhatsApp Cloud API Manager</title>
+    <title>{{ $title ? $title.' · ' : '' }}{{ $brand->siteName() }} – {{ $brand->tagline() }}</title>
 
-    {{-- Apply saved theme before paint (no flash). --}}
-    <script>
-        (function () {
-            try {
-                var t = localStorage.getItem('theme');
-                if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                    document.documentElement.classList.add('dark');
-                }
-            } catch (e) {}
-        })();
-    </script>
+    {{-- Brand colour + theme before paint (no flash). --}}
+    @include('layouts.partials.brand-head')
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
@@ -53,16 +44,18 @@
             @include('layouts.partials.account-switcher')
 
             {{-- Theme toggle --}}
+            @if ($brand->bool('theme.allow_toggle'))
             <button type="button" x-data="themeToggle()" @click="toggle()" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800" :title="dark ? 'Light mode' : 'Dark mode'" aria-label="Toggle dark mode">
                 <span x-show="!dark"><x-icon name="moon" /></span>
                 <span x-show="dark" x-cloak><x-icon name="sun" /></span>
             </button>
+            @endif
 
             {{-- User menu --}}
             <x-dropdown align="right" width="48">
                 <x-slot name="trigger">
                     <button type="button" class="flex items-center gap-2 rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">
                             {{ mb_strtoupper(mb_substr(Auth::user()->name, 0, 1)) }}
                         </span>
                         <span class="hidden text-left sm:block">

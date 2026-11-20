@@ -42,16 +42,16 @@
         <x-input-error :messages="$errors->get('password')" class="mt-2" />
 
         <label class="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
-            <input type="checkbox" name="terms" value="1" class="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800" @checked(old('terms'))>
-            <span>I agree to the <a href="{{ route('legal.terms') }}" target="_blank" class="font-medium text-emerald-600 hover:underline">Terms &amp; Conditions</a> and <a href="{{ route('legal.privacy') }}" target="_blank" class="font-medium text-emerald-600 hover:underline">Privacy Policy</a>.</span>
+            <input type="checkbox" name="terms" value="1" class="mt-0.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800" @checked(old('terms'))>
+            <span>I agree to the <a href="{{ route('legal.terms') }}" target="_blank" class="font-medium text-brand-600 hover:underline">Terms &amp; Conditions</a> and <a href="{{ route('legal.privacy') }}" target="_blank" class="font-medium text-brand-600 hover:underline">Privacy Policy</a>.</span>
         </label>
         <x-input-error :messages="$errors->get('terms')" class="mt-1" />
 
-        <button type="submit" :disabled="loading" class="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60">
+        <button type="submit" :disabled="loading" class="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60">
             <span x-show="loading" class="spinner" x-cloak></span>
             Create account
         </button>
     </form>
 
-    <p class="mt-6 text-center text-sm text-slate-500">Already have an account? <a href="{{ route('login') }}" class="font-medium text-emerald-600 hover:underline dark:text-emerald-400">Sign in</a></p>
+    <p class="mt-6 text-center text-sm text-slate-500">Already have an account? <a href="{{ route('login') }}" class="font-medium text-brand-600 hover:underline dark:text-brand-400">Sign in</a></p>
 </x-guest-layout>

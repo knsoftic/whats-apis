@@ -37,12 +37,12 @@
         @foreach ($cards as $c)
             <div @class([
                 'rounded-2xl border p-5',
-                'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-500/5' => $c['ok'],
+                'border-brand-200 bg-brand-50/60 dark:border-brand-900 dark:bg-brand-500/5' => $c['ok'],
                 'border-rose-200 bg-rose-50/60 dark:border-rose-900 dark:bg-rose-500/5' => ! $c['ok'] && $c['bad'],
                 'border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-500/5' => ! $c['ok'] && ! $c['bad'],
             ])>
                 <div class="flex items-center gap-2">
-                    <span @class(['h-2.5 w-2.5 rounded-full', 'bg-emerald-500' => $c['ok'], 'bg-rose-500' => ! $c['ok'] && $c['bad'], 'bg-amber-500' => ! $c['ok'] && ! $c['bad']])></span>
+                    <span @class(['h-2.5 w-2.5 rounded-full', 'bg-brand-500' => $c['ok'], 'bg-rose-500' => ! $c['ok'] && $c['bad'], 'bg-amber-500' => ! $c['ok'] && ! $c['bad']])></span>
                     <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{{ $c['title'] }}</h3>
                 </div>
                 <p class="mt-2 text-sm text-slate-700 dark:text-slate-300">{{ $c['text'] }}</p>
@@ -56,7 +56,7 @@
 
     @if ($account->isEmbeddedSignup() || $account->registration_status)
         <div @class(['mt-4 flex flex-wrap items-center gap-3 rounded-2xl border px-5 py-4',
-            'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-500/5' => in_array($account->registration_status, ['registered', 'coexistence', 'not_required'], true),
+            'border-brand-200 bg-brand-50/60 dark:border-brand-900 dark:bg-brand-500/5' => in_array($account->registration_status, ['registered', 'coexistence', 'not_required'], true),
             'border-rose-200 bg-rose-50/60 dark:border-rose-900 dark:bg-rose-500/5' => $account->registration_status === 'failed',
             'border-slate-200 dark:border-slate-800' => ! $account->registration_status])>
             <div class="min-w-0 flex-1">

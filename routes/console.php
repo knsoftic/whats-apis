@@ -57,11 +57,37 @@ Artisan::command('whatsapp:retry-webhooks {--hours=24}', function () {
     $this->info("Re-queued {$events->count()} failed webhook event(s).");
 })->purpose('Re-process webhook events that failed');
 
+Artisan::command('payments:sync', function (App\Services\Payments\PaymentService $payments) {
+    $pending = App\Models\Payment::where('gateway', App\Models\Payment::GATEWAY_PKPAY)
+        ->where('status', App\Models\Payment::PENDING)
+        ->whereNotNull('gateway_payment_id')
+        ->where('created_at', '>=', now()->subDay())
+        ->limit(100)->get();
+
+    foreach ($pending as $payment) {
+        try {
+            $payments->syncPkPay($payment);
+        } catch (Throwable $e) {
+            $this->warn("{$payment->reference}: {$e->getMessage()}");
+        }
+    }
+
+    // Older than a day and still pending → expired (Raast QR lives 5 minutes).
+    $expired = App\Models\Payment::where('gateway', App\Models\Payment::GATEWAY_PKPAY)
+        ->where('status', App\Models\Payment::PENDING)
+        ->where('created_at', '<', now()->subDay())
+        ->update(['status' => App\Models\Payment::EXPIRED]);
+
+    $this->info("Checked {$pending->count()} pending PKPay payment(s); expired {$expired}.");
+})->purpose('Re-check pending PKPay payments (in case a callback was missed)');
+
 /*
 |--------------------------------------------------------------------------
 | Scheduler — run `php artisan schedule:run` every minute (cron / Task Scheduler)
 |--------------------------------------------------------------------------
 */
+
+Schedule::command('payments:sync')->everyFiveMinutes()->withoutOverlapping();
 
 // Detect expired / revoked tokens early (does not send any message).
 Schedule::command('whatsapp:check-accounts')->hourly()->withoutOverlapping();

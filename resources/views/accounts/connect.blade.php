@@ -43,8 +43,8 @@
 
                         <ol class="mt-2 flex flex-wrap justify-center gap-4 text-xs">
                             <template x-for="(label, i) in ['Meta popup', 'Finishing setup', 'Done']" :key="i">
-                                <li class="flex items-center gap-1.5" :class="step > i ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400'">
-                                    <span class="flex h-5 w-5 items-center justify-center rounded-full border text-[10px]" :class="step > i ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300'" x-text="i + 1"></span>
+                                <li class="flex items-center gap-1.5" :class="step > i ? 'text-brand-600 dark:text-brand-400 font-semibold' : 'text-slate-400'">
+                                    <span class="flex h-5 w-5 items-center justify-center rounded-full border text-[10px]" :class="step > i ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-300'" x-text="i + 1"></span>
                                     <span x-text="label"></span>
                                 </li>
                             </template>
@@ -65,7 +65,7 @@
                 </x-card>
 
                 <p class="mt-4 text-center text-sm text-slate-500">
-                    Already have the IDs and a permanent token? <a href="{{ route('accounts.create') }}" class="font-medium text-emerald-600 hover:underline dark:text-emerald-400">Add the number manually</a>.
+                    Already have the IDs and a permanent token? <a href="{{ route('accounts.create') }}" class="font-medium text-brand-600 hover:underline dark:text-brand-400">Add the number manually</a>.
                 </p>
             </div>
         @endif

@@ -6,14 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }} · {{ config('legal.product') }}</title>
     <meta name="description" content="{{ $title }} of {{ config('legal.product') }} ({{ config('legal.website') }}).">
-    <script>
-        (function () {
-            try {
-                var t = localStorage.getItem('theme');
-                if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
-            } catch (e) {}
-        })();
-    </script>
+    @include('layouts.partials.brand-head')
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css'])
@@ -29,8 +22,8 @@
                 </span>
             </a>
             <nav class="flex gap-4 text-sm">
-                <a href="{{ route('legal.privacy') }}" @class(['font-medium', 'text-emerald-700 dark:text-emerald-400' => request()->routeIs('legal.privacy'), 'text-slate-600 hover:text-slate-900 dark:text-slate-400' => ! request()->routeIs('legal.privacy')])>Privacy Policy</a>
-                <a href="{{ route('legal.terms') }}" @class(['font-medium', 'text-emerald-700 dark:text-emerald-400' => request()->routeIs('legal.terms'), 'text-slate-600 hover:text-slate-900 dark:text-slate-400' => ! request()->routeIs('legal.terms')])>Terms &amp; Conditions</a>
+                <a href="{{ route('legal.privacy') }}" @class(['font-medium', 'text-brand-700 dark:text-brand-400' => request()->routeIs('legal.privacy'), 'text-slate-600 hover:text-slate-900 dark:text-slate-400' => ! request()->routeIs('legal.privacy')])>Privacy Policy</a>
+                <a href="{{ route('legal.terms') }}" @class(['font-medium', 'text-brand-700 dark:text-brand-400' => request()->routeIs('legal.terms'), 'text-slate-600 hover:text-slate-900 dark:text-slate-400' => ! request()->routeIs('legal.terms')])>Terms &amp; Conditions</a>
                 <a href="{{ route('login') }}" class="text-slate-600 hover:text-slate-900 dark:text-slate-400">Sign in</a>
             </nav>
         </div>

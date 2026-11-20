@@ -1,5 +1,6 @@
 <x-app-layout title="Meta Tech Provider">
     <div class="mx-auto max-w-4xl">
+        @include('settings._tabs')
         <x-page-header title="Meta Tech Provider settings" description="Your own Meta app, used for WhatsApp Embedded Signup (“Connect with Meta”) and the shared webhook for all numbers onboarded through it." />
 
         <div class="mb-6 grid gap-4 sm:grid-cols-3">
@@ -9,9 +10,9 @@
                 ['Numbers onboarded', $embeddedAccounts > 0, $embeddedAccounts.' via Embedded Signup'],
             ] as [$title, $okState, $text])
                 <div @class(['rounded-2xl border p-4',
-                    'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-500/5' => $okState,
+                    'border-brand-200 bg-brand-50/60 dark:border-brand-900 dark:bg-brand-500/5' => $okState,
                     'border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-500/5' => ! $okState])>
-                    <p class="flex items-center gap-2 text-sm font-semibold"><span @class(['h-2.5 w-2.5 rounded-full', 'bg-emerald-500' => $okState, 'bg-amber-500' => ! $okState])></span>{{ $title }}</p>
+                    <p class="flex items-center gap-2 text-sm font-semibold"><span @class(['h-2.5 w-2.5 rounded-full', 'bg-brand-500' => $okState, 'bg-amber-500' => ! $okState])></span>{{ $title }}</p>
                     <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ $text }}</p>
                 </div>
             @endforeach

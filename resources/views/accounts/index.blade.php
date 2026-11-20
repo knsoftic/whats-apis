@@ -15,7 +15,7 @@
             <x-card>
                 <div class="flex h-full flex-col">
                     <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1877F2]/10 text-[#1877F2]"><x-icon name="link" class="h-6 w-6" /></span>
-                    <h3 class="mt-3 font-semibold text-slate-900 dark:text-white">Connect with Meta <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">Recommended</span></h3>
+                    <h3 class="mt-3 font-semibold text-slate-900 dark:text-white">Connect with Meta <span class="ml-1 rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">Recommended</span></h3>
                     <p class="mt-1 flex-1 text-sm text-slate-500">Embedded Signup: log in with Facebook, choose the WhatsApp Business Account and verify the number. Tokens, webhooks and registration are handled automatically.</p>
                     <x-button class="mt-4 self-start" :href="route('accounts.connect')" icon="link">Connect with Meta</x-button>
                 </div>
@@ -36,14 +36,14 @@
                     <div class="flex items-start gap-4">
                         <span @class([
                             'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl',
-                            'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400' => $account->isOperational(),
+                            'bg-brand-100 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400' => $account->isOperational(),
                             'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400' => $account->is_active && ! $account->isOperational(),
                             'bg-slate-100 text-slate-400 dark:bg-slate-800' => ! $account->is_active,
                         ])>
                             <x-icon name="phone" class="h-6 w-6" />
                         </span>
                         <div class="min-w-0 flex-1">
-                            <a href="{{ route('accounts.show', $account) }}" class="block truncate text-base font-semibold text-slate-900 hover:text-emerald-700 dark:text-white dark:hover:text-emerald-400">{{ $account->name }}</a>
+                            <a href="{{ route('accounts.show', $account) }}" class="block truncate text-base font-semibold text-slate-900 hover:text-brand-700 dark:text-white dark:hover:text-brand-400">{{ $account->name }}</a>
                             <p class="truncate text-sm text-slate-500 dark:text-slate-400">
                                 {{ $account->display_phone_number ?? 'Phone number not confirmed yet' }}
                                 @if ($account->verified_name) · {{ $account->verified_name }} @endif

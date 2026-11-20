@@ -27,7 +27,7 @@
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ $plan->name }}</h3>
-                            <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $plan->priceLabel() }}</p>
+                            <p class="text-2xl font-bold text-brand-600 dark:text-brand-400">{{ $plan->priceLabel() }}</p>
                         </div>
                         <div class="flex flex-col items-end gap-1">
                             @if ($plan->is_default)<x-badge color="blue">Default</x-badge>@endif
@@ -43,7 +43,7 @@
                             ['Bot flows'.($plan->allow_bot_flows && $plan->max_bot_flows !== null ? ' (max '.$plan->max_bot_flows.')' : ''), $plan->allow_bot_flows],
                         ] as [$label, $on])
                             <li class="flex items-center gap-2 {{ $on ? '' : 'text-slate-400 line-through' }}">
-                                <x-icon :name="$on ? 'check' : 'x'" class="h-4 w-4 {{ $on ? 'text-emerald-600' : 'text-slate-400' }}" />{{ $label }}
+                                <x-icon :name="$on ? 'check' : 'x'" class="h-4 w-4 {{ $on ? 'text-brand-600' : 'text-slate-400' }}" />{{ $label }}
                             </li>
                         @endforeach
                     </ul>

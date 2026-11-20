@@ -104,3 +104,10 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Plans: Embedded/manual permission, max numbers, daily message limit, max contacts, bots on/off + max flows, trial/expiry; enforced in one place (`PlanGate`); number ownership (`owner_id`) and customer isolation.
 - Bot flows: keyword / welcome / fallback / menu-only triggers; text, menu (buttons/list → other flows), image, document, handoff steps; pause after agent reply; chat pause/resume.
 - **Result:** ✅ 206 tests pass (830 assertions). Plans page and bot builder checked in browser.
+
+### 2026-11-20 · Phase 10 — Settings center + PKPay
+- Read https://pkpay.site/docs (single page: signed requests, Raast QR, PKR only, signed callbacks, status endpoint, IP allowlist).
+- Settings tabs: General (name, logo, registration), Appearance (brand colour via CSS variables, default theme, toggle), Payments (currency, self-purchase, PKPay creds, manual), Email SMTP (runtime), Legal, Meta.
+- Self-purchase: Billing page → PKPay checkout → verified callback → plan activation (idempotent, renewal-aware); manual payments approved on the Payments page; `payments:sync` scheduler.
+- Fixes during work: test helper named `callback()` clashed with PHPUnit's final method; `@js` inside a Blade component attribute is not compiled (colour swatch ticks).
+- **Result:** ✅ 223 tests pass (934 assertions). Settings pages checked in browser.

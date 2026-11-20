@@ -50,9 +50,9 @@
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                             <td>
                                 <a href="{{ route('contacts.show', $contact) }}" class="flex items-center gap-3">
-                                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">{{ $contact->initials() }}</span>
+                                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">{{ $contact->initials() }}</span>
                                     <span class="min-w-0">
-                                        <span class="block truncate font-medium text-slate-900 hover:text-emerald-700 dark:text-white">{{ $contact->displayName() }}</span>
+                                        <span class="block truncate font-medium text-slate-900 hover:text-brand-700 dark:text-white">{{ $contact->displayName() }}</span>
                                         @if ($contact->profile_name && $contact->profile_name !== $contact->name)
                                             <span class="block truncate text-xs text-slate-500">~{{ $contact->profile_name }}</span>
                                         @endif

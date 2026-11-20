@@ -41,15 +41,15 @@
                     </select>
                 </div>
                 <template x-if="can.template">
-                    <button type="button" @click="openTemplateModal(true)" class="rounded-xl bg-emerald-600 p-2 text-white hover:bg-emerald-700" title="New chat (template)" aria-label="New chat">
+                    <button type="button" @click="openTemplateModal(true)" class="rounded-xl bg-brand-600 p-2 text-white hover:bg-brand-700" title="New chat (template)" aria-label="New chat">
                         <x-icon name="plus" />
                     </button>
                 </template>
             </div>
 
             {{-- Connection hint --}}
-            <div class="flex items-center gap-2 px-3 pt-2 text-[11px]" :class="connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
-                <span class="h-1.5 w-1.5 rounded-full" :class="connected ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'"></span>
+            <div class="flex items-center gap-2 px-3 pt-2 text-[11px]" :class="connected ? 'text-brand-600 dark:text-brand-400' : 'text-amber-600 dark:text-amber-400'">
+                <span class="h-1.5 w-1.5 rounded-full" :class="connected ? 'bg-brand-500' : 'bg-amber-500 animate-pulse'"></span>
                 <span x-text="connected ? 'Live updates connected' : 'Live updates offline — refreshing every 10 s'"></span>
             </div>
 
@@ -60,13 +60,13 @@
                     <input type="search" x-model="q" class="form-input py-2 pl-9 pr-24 text-sm"
                            :placeholder="searchMode ? 'Search inside messages…' : 'Search name or number…'">
                     <button type="button" @click="toggleSearchMode()" class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[11px] font-medium"
-                            :class="searchMode ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'"
+                            :class="searchMode ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'"
                             x-text="searchMode ? 'Messages' : 'Contacts'" title="Switch between contact search and message search"></button>
                 </div>
                 <div class="flex gap-1.5" x-show="!searchMode">
                     <template x-for="f in [['all','All'],['unread','Unread'],['open','Open'],['closed','Closed']]" :key="f[0]">
                         <button type="button" @click="filter = f[0]" class="rounded-full px-3 py-1 text-xs font-medium transition"
-                                :class="filter === f[0] ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400'">
+                                :class="filter === f[0] ? 'bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400'">
                             <span x-text="f[1]"></span><span x-show="f[0] === 'unread' && unreadTotal" x-text="' ' + unreadTotal"></span>
                         </button>
                     </template>
@@ -94,18 +94,18 @@
                 <template x-for="c in conversations" :key="c.id">
                     <button type="button" @click="open(c)"
                             class="flex w-full items-center gap-3 border-b border-slate-100 px-3 py-3 text-left transition dark:border-slate-800"
-                            :class="active && active.id === c.id ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'">
+                            :class="active && active.id === c.id ? 'bg-brand-50 dark:bg-brand-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'">
                         <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200" x-text="c.contact.initials"></span>
                         <span class="min-w-0 flex-1">
                             <span class="flex items-baseline justify-between gap-2">
                                 <span class="truncate font-medium text-slate-900 dark:text-white" x-text="c.contact.name"></span>
-                                <span class="shrink-0 text-[11px]" :class="c.unread_count ? 'font-semibold text-emerald-600 dark:text-emerald-400' : 'text-slate-400'" x-text="listTime(c.last_message_at)"></span>
+                                <span class="shrink-0 text-[11px]" :class="c.unread_count ? 'font-semibold text-brand-600 dark:text-brand-400' : 'text-slate-400'" x-text="listTime(c.last_message_at)"></span>
                             </span>
                             <span class="mt-0.5 flex items-center justify-between gap-2">
                                 <span class="truncate text-sm text-slate-500 dark:text-slate-400">
                                     <span x-show="c.last_message_direction === 'outbound'" class="text-slate-400">You: </span><span x-text="c.last_message_preview || '—'"></span>
                                 </span>
-                                <span x-show="c.unread_count > 0" class="min-w-[20px] shrink-0 rounded-full bg-emerald-500 px-1.5 py-0.5 text-center text-[11px] font-bold text-white" x-text="c.unread_count"></span>
+                                <span x-show="c.unread_count > 0" class="min-w-[20px] shrink-0 rounded-full bg-brand-500 px-1.5 py-0.5 text-center text-[11px] font-bold text-white" x-text="c.unread_count"></span>
                                 <span x-show="!c.unread_count && c.status === 'closed'" class="shrink-0 text-[10px] uppercase text-slate-400">closed</span>
                             </span>
                         </span>
@@ -128,7 +128,7 @@
             {{-- Nothing selected --}}
             <div x-show="!active" class="chat-wallpaper flex flex-1 flex-col items-center justify-center p-8 text-center">
                 <x-application-logo class="h-16 w-16 opacity-90" />
-                <h2 class="mt-4 text-lg font-semibold text-slate-800 dark:text-slate-100">KN Softic WhatsApp Inbox</h2>
+                <h2 class="mt-4 text-lg font-semibold text-slate-800 dark:text-slate-100">{{ $brand->siteName() }} Inbox</h2>
                 <p class="mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">Select a conversation to start chatting. New messages appear instantly.</p>
             </div>
 
@@ -166,7 +166,7 @@
 
                     {{-- 24h window banner --}}
                     <div class="flex items-center gap-2 px-4 py-1.5 text-xs"
-                         :class="active.within_window ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300'">
+                         :class="active.within_window ? 'bg-brand-50 text-brand-800 dark:bg-brand-500/10 dark:text-brand-300' : 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300'">
                         <x-icon name="clock" class="h-4 w-4 shrink-0" />
                         <span x-text="windowLabel()"></span>
                     </div>
@@ -194,12 +194,12 @@
                                             ? 'rounded-tr-sm bg-[#d9fdd3] text-slate-900 dark:bg-[#005c4b] dark:text-slate-100'
                                             : 'rounded-tl-sm bg-white text-slate-900 dark:bg-[#202c33] dark:text-slate-100'">
 
-                                        <p x-show="m.direction === 'outbound' && m.sent_by" class="mb-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300" x-text="m.sent_by"></p>
+                                        <p x-show="m.direction === 'outbound' && m.sent_by" class="mb-0.5 text-[11px] font-semibold text-brand-700 dark:text-brand-300" x-text="m.sent_by"></p>
 
                                         {{-- Quoted reply --}}
                                         <template x-if="m.reply_to">
-                                            <div class="mb-1 rounded-lg border-l-4 border-emerald-500 bg-black/5 px-2 py-1 text-xs dark:bg-white/10">
-                                                <p class="font-semibold text-emerald-700 dark:text-emerald-300" x-text="m.reply_to.direction === 'outbound' ? 'You' : active.contact?.name"></p>
+                                            <div class="mb-1 rounded-lg border-l-4 border-brand-500 bg-black/5 px-2 py-1 text-xs dark:bg-white/10">
+                                                <p class="font-semibold text-brand-700 dark:text-brand-300" x-text="m.reply_to.direction === 'outbound' ? 'You' : active.contact?.name"></p>
                                                 <p class="line-clamp-2 text-slate-600 dark:text-slate-300" x-text="m.reply_to.preview"></p>
                                             </div>
                                         </template>
@@ -326,9 +326,9 @@
                         <template x-if="can.send && active.within_window">
                             <div>
                                 {{-- Reply preview --}}
-                                <div x-show="replyTo" class="mb-2 flex items-start gap-2 rounded-lg border-l-4 border-emerald-500 bg-white px-3 py-2 text-xs dark:bg-slate-800">
+                                <div x-show="replyTo" class="mb-2 flex items-start gap-2 rounded-lg border-l-4 border-brand-500 bg-white px-3 py-2 text-xs dark:bg-slate-800">
                                     <div class="min-w-0 flex-1">
-                                        <p class="font-semibold text-emerald-700 dark:text-emerald-300" x-text="replyTo?.direction === 'outbound' ? 'Replying to yourself' : 'Replying to ' + (active.contact?.name || '')"></p>
+                                        <p class="font-semibold text-brand-700 dark:text-brand-300" x-text="replyTo?.direction === 'outbound' ? 'Replying to yourself' : 'Replying to ' + (active.contact?.name || '')"></p>
                                         <p class="truncate text-slate-500" x-text="replyTo?.body || replyTo?.type"></p>
                                     </div>
                                     <button type="button" @click="replyTo = null" class="text-slate-400 hover:text-slate-600" aria-label="Cancel reply"><x-icon name="x" class="h-4 w-4" /></button>
@@ -337,7 +337,7 @@
                                 <div x-show="file" class="mb-2 flex items-center gap-3 rounded-lg bg-white px-3 py-2 text-sm dark:bg-slate-800">
                                     <x-icon name="paperclip" class="h-4 w-4 text-slate-400" />
                                     <span class="min-w-0 flex-1 truncate" x-text="file?.name"></span>
-                                    <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" x-model="fileAsDocument" class="rounded border-slate-300 text-emerald-600"> Send as document</label>
+                                    <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" x-model="fileAsDocument" class="rounded border-slate-300 text-brand-600"> Send as document</label>
                                     <button type="button" @click="file = null" class="text-slate-400 hover:text-slate-600" aria-label="Remove file"><x-icon name="x" class="h-4 w-4" /></button>
                                 </div>
 
@@ -351,7 +351,7 @@
                                               :placeholder="file ? 'Add a caption…' : 'Type a message'"
                                               class="form-input max-h-40 min-h-[42px] flex-1 resize-none rounded-2xl py-2.5"></textarea>
                                     <button type="button" @click="send()" :disabled="sending || (!draft.trim() && !file)"
-                                            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow hover:bg-emerald-700 disabled:opacity-50" aria-label="Send">
+                                            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white shadow hover:bg-brand-700 disabled:opacity-50" aria-label="Send">
                                         <span x-show="sending" class="spinner"></span>
                                         <x-icon name="send" class="h-5 w-5" x-show="!sending" />
                                     </button>

@@ -10,7 +10,12 @@ abstract class TestCase extends BaseTestCase
 {
     protected function setUp(): void
     {
+        // Settings are cached statically per PHP process — never leak between tests.
+        \App\Models\Setting::flushCache();
+
         parent::setUp();
+
+        \App\Models\Setting::flushCache();
 
         // Views use @vite — tests never need compiled assets.
         $this->withoutVite();

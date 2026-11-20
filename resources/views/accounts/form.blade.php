@@ -109,7 +109,7 @@
                 <x-card>
                     <label class="flex items-center gap-3 text-sm">
                         <input type="hidden" name="is_active" value="0">
-                        <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800" @checked(old('is_active', $account->is_active ?? true))>
+                        <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800" @checked(old('is_active', $account->is_active ?? true))>
                         <span><span class="font-medium">Enabled</span> — disabled accounts cannot send messages.</span>
                     </label>
                 </x-card>

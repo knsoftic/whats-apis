@@ -69,7 +69,7 @@
                     </div>
                     <label class="flex items-center gap-3 text-sm">
                         <input type="hidden" name="is_active" value="0">
-                        <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800" @checked(old('is_active', $flow->is_active))>
+                        <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800" @checked(old('is_active', $flow->is_active))>
                         Active
                     </label>
                 </div>
@@ -80,7 +80,7 @@
                     <template x-for="(step, i) in steps" :key="i">
                         <div class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
                             <div class="mb-3 flex items-center gap-2">
-                                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white" x-text="i + 1"></span>
+                                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white" x-text="i + 1"></span>
                                 <span class="text-sm font-semibold" x-text="label(step.type)"></span>
                                 <span x-show="step.type === 'menu'" class="text-xs text-slate-500" x-text="'· ' + menuKind(step)"></span>
                                 <div class="ml-auto flex gap-1">
@@ -118,7 +118,7 @@
                                         </div>
                                     </template>
                                     <div class="flex items-center gap-3">
-                                        <button type="button" class="text-sm font-medium text-emerald-600" @click="addOption(step)" x-show="step.options.length < 10">+ Add option</button>
+                                        <button type="button" class="text-sm font-medium text-brand-600" @click="addOption(step)" x-show="step.options.length < 10">+ Add option</button>
                                         <span class="text-xs text-slate-500">1–3 options = buttons · 4–10 = list</span>
                                     </div>
                                     <p x-show="!targets.length" class="text-xs text-amber-600">Create the flows the options should open first (trigger “Menu only”), then come back and link them.</p>

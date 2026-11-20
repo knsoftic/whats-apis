@@ -2,7 +2,7 @@
 @if ($switcherAccounts->isNotEmpty())
     <div x-data="{ open: false }" class="relative" @keydown.escape="open = false">
         <button type="button" @click="open = !open" class="flex max-w-[220px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-haspopup="true">
-            <x-icon name="phone" class="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <x-icon name="phone" class="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
             <span class="hidden truncate sm:inline">{{ $currentAccount?->name ?? 'All numbers' }}</span>
             <x-icon name="chevron-down" class="h-4 w-4 shrink-0 text-slate-400" />
         </button>
@@ -14,7 +14,7 @@
                 <button name="account_id" value="" class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700">
                     <span class="h-2 w-2 rounded-full bg-slate-300"></span>
                     <span class="flex-1">All numbers</span>
-                    @if (! $currentAccount)<x-icon name="check" class="h-4 w-4 text-emerald-600" />@endif
+                    @if (! $currentAccount)<x-icon name="check" class="h-4 w-4 text-brand-600" />@endif
                 </button>
                 @foreach ($switcherAccounts as $acc)
                     <button name="account_id" value="{{ $acc->id }}" class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700">
@@ -26,7 +26,7 @@
                             <span class="block truncate font-medium">{{ $acc->name }}</span>
                             <span class="block truncate text-xs text-slate-500 dark:text-slate-400">{{ $acc->display_phone_number ?? 'Phone ID '.$acc->phone_number_id }}{{ $acc->is_active ? '' : ' · disabled' }}</span>
                         </span>
-                        @if ($currentAccount?->id === $acc->id)<x-icon name="check" class="h-4 w-4 text-emerald-600" />@endif
+                        @if ($currentAccount?->id === $acc->id)<x-icon name="check" class="h-4 w-4 text-brand-600" />@endif
                     </button>
                 @endforeach
             </form>

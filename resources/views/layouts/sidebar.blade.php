@@ -8,18 +8,21 @@
         ['label' => 'Message Templates', 'route' => 'templates.index', 'active' => 'templates.*', 'icon' => 'template', 'can' => P::TEMPLATES_VIEW],
         ['label' => 'Bot Flows', 'route' => 'bots.index', 'active' => 'bots.*', 'icon' => 'bolt', 'can' => P::BOTS_MANAGE],
         ['label' => 'WhatsApp Numbers', 'route' => 'accounts.index', 'active' => 'accounts.*', 'icon' => 'phone', 'can' => P::ACCOUNTS_MANAGE, 'customer_only' => true],
+        ['label' => 'Billing & Plan', 'route' => 'billing.index', 'active' => 'billing.*', 'icon' => 'chart', 'can' => P::DASHBOARD_VIEW, 'customer_only' => true, 'role' => P::ROLE_CUSTOMER],
     ];
     $admin = [
         ['label' => 'WhatsApp Accounts', 'route' => 'accounts.index', 'active' => 'accounts.*', 'icon' => 'phone', 'can' => P::ACCOUNTS_MANAGE],
         ['label' => 'Users', 'route' => 'users.index', 'active' => 'users.*', 'icon' => 'users', 'can' => P::USERS_MANAGE],
         ['label' => 'Plans', 'route' => 'plans.index', 'active' => 'plans.*', 'icon' => 'chart', 'can' => P::PLANS_MANAGE],
+        ['label' => 'Payments', 'route' => 'payments.index', 'active' => 'payments.*', 'icon' => 'inbox', 'can' => P::PLANS_MANAGE],
         ['label' => 'Activity Logs', 'route' => 'activity-logs.index', 'active' => 'activity-logs.*', 'icon' => 'activity', 'can' => P::ACTIVITY_VIEW],
-        ['label' => 'Meta Tech Provider', 'route' => 'settings.meta', 'active' => 'settings.*', 'icon' => 'key', 'can' => P::SETTINGS_MANAGE],
+        ['label' => 'Settings', 'route' => 'settings.index', 'active' => 'settings.*', 'icon' => 'key', 'can' => P::SETTINGS_MANAGE],
     ];
     $isCustomer = auth()->user()->isPlanLimited();
     $visible = fn ($items) => array_filter($items, fn ($i) => Route::has($i['route'])
         && auth()->user()->can($i['can'])
-        && (! ($i['customer_only'] ?? false) || $isCustomer));
+        && (! ($i['customer_only'] ?? false) || $isCustomer)
+        && (! isset($i['role']) || auth()->user()->hasRole($i['role'])));
     $nav = $visible($nav);
     // Customers manage their own numbers from the main menu; the Administration block is for staff.
     $admin = $isCustomer ? [] : $visible($admin);
@@ -29,8 +32,8 @@
     <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3">
         <x-application-logo class="h-9 w-9 shrink-0" />
         <span class="min-w-0 leading-tight">
-            <span class="block truncate text-sm font-bold text-slate-900 dark:text-white">KN Softic</span>
-            <span class="block truncate text-[11px] font-medium text-slate-500 dark:text-slate-400">WhatsApp Cloud API Manager</span>
+            <span class="block truncate text-sm font-bold text-slate-900 dark:text-white">{{ $brand->siteName() }}</span>
+            <span class="block truncate text-[11px] font-medium text-slate-500 dark:text-slate-400">{{ $brand->tagline() }}</span>
         </span>
     </a>
     <button type="button" @click="sidebarOpen = false" class="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden" aria-label="Close menu">
@@ -44,7 +47,7 @@
             @php $active = request()->routeIs($item['active']); @endphp
             <a href="{{ route($item['route']) }}" @class([
                 'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition',
-                'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' => $active,
+                'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' => $active,
                 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white' => ! $active,
             ])>
                 <x-icon :name="$item['icon']" class="h-5 w-5 shrink-0" />
@@ -61,7 +64,7 @@
                     @php $active = request()->routeIs($item['active']); @endphp
                     <a href="{{ route($item['route']) }}" @class([
                         'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition',
-                        'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' => $active,
+                        'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' => $active,
                         'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white' => ! $active,
                     ])>
                         <x-icon :name="$item['icon']" class="h-5 w-5 shrink-0" />
@@ -74,6 +77,6 @@
 </nav>
 
 <div class="border-t border-slate-200 px-5 py-4 text-[11px] text-slate-400 dark:border-slate-800 dark:text-slate-500">
-    Official Meta WhatsApp Cloud API<br>© {{ date('Y') }} KN Softic
+    Official Meta WhatsApp Cloud API<br>© {{ date('Y') }} {{ $brand->siteName() }}
     <span class="mt-1 block"><a href="{{ route('legal.privacy') }}" class="hover:text-slate-600 dark:hover:text-slate-300">Privacy</a> · <a href="{{ route('legal.terms') }}" class="hover:text-slate-600 dark:hover:text-slate-300">Terms</a></span>
 </div>

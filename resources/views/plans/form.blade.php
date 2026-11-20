@@ -64,13 +64,13 @@
                     ] as $field => $label)
                         <label class="flex items-center gap-3 text-sm">
                             <input type="hidden" name="{{ $field }}" value="0">
-                            <input type="checkbox" name="{{ $field }}" value="1" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800" @checked(old($field, $plan->{$field}))>
+                            <input type="checkbox" name="{{ $field }}" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800" @checked(old($field, $plan->{$field}))>
                             {{ $label }}
                         </label>
                     @endforeach
                     <label class="flex items-center gap-3 text-sm">
                         <input type="hidden" name="allow_bot_flows" value="0">
-                        <input type="checkbox" name="allow_bot_flows" value="1" x-model="bots" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800">
+                        <input type="checkbox" name="allow_bot_flows" value="1" x-model="bots" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800">
                         Bot flows (auto-replies, menus)
                     </label>
                 </div>
@@ -100,7 +100,7 @@
                     @foreach (['is_active' => 'Active (can be assigned)', 'is_default' => 'Default plan for new registrations'] as $field => $label)
                         <label class="flex items-center gap-3 text-sm">
                             <input type="hidden" name="{{ $field }}" value="0">
-                            <input type="checkbox" name="{{ $field }}" value="1" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800" @checked(old($field, $plan->{$field}))>
+                            <input type="checkbox" name="{{ $field }}" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800" @checked(old($field, $plan->{$field}))>
                             {{ $label }}
                         </label>
                     @endforeach

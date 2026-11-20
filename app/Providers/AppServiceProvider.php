@@ -21,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // One instance per request (safe for queue workers / Octane).
         $this->app->scoped(CurrentAccount::class);
+        $this->app->scoped(\App\Support\PlatformSettings::class);
     }
 
     public function boot(): void
@@ -47,6 +48,17 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->configureRateLimiting();
+
+        // Website settings (name, legal, SMTP) from the Settings page.
+        app(\App\Support\PlatformSettings::class)->applyRuntimeConfig();
+
+        // Long-running queue workers: read fresh settings for every job.
+        \Illuminate\Support\Facades\Queue::before(fn () => \App\Models\Setting::flushCache());
+
+        // Branding available in every view as $brand.
+        View::composer('*', function ($view) {
+            $view->with('brand', app(\App\Support\PlatformSettings::class));
+        });
 
         // Account switcher data for the main layout.
         View::composer('layouts.app', function ($view) {

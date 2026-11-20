@@ -43,7 +43,7 @@
                     <div class="flex items-end">
                         <label class="flex items-center gap-2 text-sm">
                             <input type="hidden" name="is_active" value="0">
-                            <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800" @checked(old('is_active', $user->is_active))>
+                            <input type="checkbox" name="is_active" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800" @checked(old('is_active', $user->is_active))>
                             Active (can sign in)
                         </label>
                     </div>
@@ -87,7 +87,7 @@
                         <div class="mt-3 grid gap-2 sm:grid-cols-2">
                             @foreach ($accounts as $account)
                                 <label class="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
-                                    <input type="checkbox" name="account_ids[]" value="{{ $account->id }}" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800"
+                                    <input type="checkbox" name="account_ids[]" value="{{ $account->id }}" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800"
                                         @checked(in_array($account->id, old('account_ids', $selectedAccounts)))>
                                     <span class="min-w-0">
                                         <span class="block truncate font-medium">{{ $account->name }}</span>

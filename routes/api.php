@@ -16,6 +16,11 @@ use Illuminate\Support\Facades\Route;
 |    Signed with the platform App Secret; routed by phone_number_id / WABA id.
 */
 
+// PKPay payment callback (signed with the PKPay API secret).
+Route::post('payments/pkpay/callback', App\Http\Controllers\PkPayCallbackController::class)
+    ->middleware('throttle:120,1')
+    ->name('payments.pkpay.callback');
+
 Route::middleware('throttle:whatsapp-webhook')->group(function () {
     Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verifyPlatform'])
         ->name('webhooks.whatsapp.platform');

@@ -78,7 +78,7 @@
             @forelse ($messages as $m)
                 <div class="flex gap-3 border-b border-slate-100 px-5 py-3 last:border-0 dark:border-slate-800">
                     <span @class(['mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
-                        'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15' => $m->isInbound(),
+                        'bg-brand-100 text-brand-600 dark:bg-brand-500/15' => $m->isInbound(),
                         'bg-violet-100 text-violet-600 dark:bg-violet-500/15' => $m->isOutbound()])>
                         <x-icon :name="$m->isInbound() ? 'arrow-down-left' : 'arrow-up-right'" class="h-4 w-4" />
                     </span>
@@ -89,7 +89,7 @@
                             <x-badge :color="match ($m->status) { 'read' => 'blue', 'delivered', 'sent', 'received' => 'green', 'failed' => 'red', default => 'amber' }">{{ $m->status }}</x-badge>
                             @if ($m->type !== 'text')<x-badge>{{ $m->type }}</x-badge>@endif
                             @foreach ($m->attachments as $a)
-                                @if ($a->isAvailable())<a href="{{ route('media.show', ['attachment' => $a, 'download' => 1]) }}" class="text-emerald-600 hover:underline">Download {{ $a->type }}</a>@endif
+                                @if ($a->isAvailable())<a href="{{ route('media.show', ['attachment' => $a, 'download' => 1]) }}" class="text-brand-600 hover:underline">Download {{ $a->type }}</a>@endif
                             @endforeach
                         </p>
                         @if ($m->status === 'failed' && $m->error_message)<p class="mt-1 text-xs text-rose-600">{{ $m->error_message }}</p>@endif

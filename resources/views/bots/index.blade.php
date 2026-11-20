@@ -38,7 +38,7 @@
                         @foreach ($flows as $flow)
                             <tr>
                                 <td>
-                                    <a href="{{ route('bots.edit', $flow) }}" class="font-medium text-slate-900 hover:text-emerald-700 dark:text-white">{{ $flow->name }}</a>
+                                    <a href="{{ route('bots.edit', $flow) }}" class="font-medium text-slate-900 hover:text-brand-700 dark:text-white">{{ $flow->name }}</a>
                                     <p class="text-xs text-slate-500">Priority {{ $flow->priority }}{{ $flow->cooldown_minutes ? ' · cooldown '.$flow->cooldown_minutes.' min' : '' }}</p>
                                 </td>
                                 <td class="text-xs">

@@ -41,7 +41,7 @@
                     <x-card class="flex flex-col">
                         <div class="mb-3 flex items-start justify-between gap-3">
                             <div class="min-w-0">
-                                <a href="{{ route('templates.show', $template) }}" class="block truncate font-mono text-sm font-semibold text-slate-900 hover:text-emerald-700 dark:text-white">{{ $template->name }}</a>
+                                <a href="{{ route('templates.show', $template) }}" class="block truncate font-mono text-sm font-semibold text-slate-900 hover:text-brand-700 dark:text-white">{{ $template->name }}</a>
                                 <p class="text-xs text-slate-500">{{ $template->language }} · {{ ucfirst(strtolower((string) $template->category)) }}</p>
                             </div>
                             <x-badge :color="match (strtoupper((string) $template->status)) { 'APPROVED' => 'green', 'PENDING', 'IN_APPEAL' => 'amber', 'REJECTED', 'DISABLED' => 'red', default => 'slate' }" dot>{{ $template->status }}</x-badge>

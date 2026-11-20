@@ -8,7 +8,7 @@
             @php $r = session('importResult'); @endphp
             <x-card class="mb-6" title="Import result">
                 <div class="grid grid-cols-3 gap-3 text-center">
-                    <div class="rounded-xl bg-emerald-50 p-3 dark:bg-emerald-500/10"><p class="text-2xl font-semibold text-emerald-700 dark:text-emerald-300">{{ $r['created'] }}</p><p class="text-xs text-slate-500">created</p></div>
+                    <div class="rounded-xl bg-brand-50 p-3 dark:bg-brand-500/10"><p class="text-2xl font-semibold text-brand-700 dark:text-brand-300">{{ $r['created'] }}</p><p class="text-xs text-slate-500">created</p></div>
                     <div class="rounded-xl bg-sky-50 p-3 dark:bg-sky-500/10"><p class="text-2xl font-semibold text-sky-700 dark:text-sky-300">{{ $r['updated'] }}</p><p class="text-xs text-slate-500">updated</p></div>
                     <div class="rounded-xl bg-amber-50 p-3 dark:bg-amber-500/10"><p class="text-2xl font-semibold text-amber-700 dark:text-amber-300">{{ $r['skipped'] }}</p><p class="text-xs text-slate-500">skipped</p></div>
                 </div>
@@ -35,7 +35,7 @@
                     </div>
                     <div>
                         <label class="form-label" for="file">CSV file (max 5 MB, 5,000 rows)</label>
-                        <input id="file" type="file" name="file" accept=".csv,text/csv" required class="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-500/10 dark:file:text-emerald-300">
+                        <input id="file" type="file" name="file" accept=".csv,text/csv" required class="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-brand-500/10 dark:file:text-brand-300">
                         @error('file')<p class="form-error">{{ $message }}</p>@enderror
                     </div>
                     <div class="rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-800/60">

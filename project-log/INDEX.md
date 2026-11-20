@@ -39,6 +39,7 @@
 | 7 | Multiple accounts, security, testing & deployment | ✅ Done | 11 / 11 | [phase-7-security-testing-deploy.md](phases/phase-7-security-testing-deploy.md) |
 | 8 | **WhatsApp Embedded Signup (Tech Provider)** + manual entry | ✅ Code + tests · ⏳ live | 8 / 8 | [phase-8-embedded-signup.md](phases/phase-8-embedded-signup.md) |
 | 9 | **Registration, Plans & Bot Flows** | ✅ Code + tests (206) · ⏳ live bot test | 3 / 3 | [phase-9-registration-plans-bots.md](phases/phase-9-registration-plans-bots.md) |
+| 10 | **Settings center + PKPay self-purchase** | ✅ Code + tests (223) · ⏳ live payment | 2 / 2 | [phase-10-settings-payments.md](phases/phase-10-settings-payments.md) |
 
 ---
 

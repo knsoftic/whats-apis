@@ -32,7 +32,7 @@ class PlanController extends Controller
     public function create(): View
     {
         return view('plans.form', ['plan' => new Plan([
-            'currency' => 'INR', 'billing_period' => 'monthly', 'is_active' => true,
+            'currency' => app(\App\Support\PlatformSettings::class)->currency(), 'billing_period' => 'monthly', 'is_active' => true,
             'allow_manual' => true, 'allow_embedded_signup' => true, 'allow_bot_flows' => true,
         ])]);
     }

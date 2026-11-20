@@ -17,7 +17,7 @@
             <div class="flex items-center justify-between">
                 <label for="password" class="form-label">Password</label>
                 @if (Route::has('password.request'))
-                    <a class="mb-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400" href="{{ route('password.request') }}">Forgot password?</a>
+                    <a class="mb-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400" href="{{ route('password.request') }}">Forgot password?</a>
                 @endif
             </div>
             <input id="password" class="form-input" type="password" name="password" required autocomplete="current-password">
@@ -25,17 +25,17 @@
         </div>
 
         <label for="remember_me" class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-            <input id="remember_me" type="checkbox" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-800" name="remember">
+            <input id="remember_me" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800" name="remember">
             Remember me
         </label>
 
-        <button type="submit" :disabled="loading" class="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60">
+        <button type="submit" :disabled="loading" class="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60">
             <span x-show="loading" class="spinner" x-cloak></span>
             Log in
         </button>
     </form>
 
     @if (\App\Http\Controllers\Auth\RegisteredUserController::enabled())
-        <p class="mt-6 text-center text-sm text-slate-500">New here? <a href="{{ route('register') }}" class="font-medium text-emerald-600 hover:underline dark:text-emerald-400">Create an account</a></p>
+        <p class="mt-6 text-center text-sm text-slate-500">New here? <a href="{{ route('register') }}" class="font-medium text-brand-600 hover:underline dark:text-brand-400">Create an account</a></p>
     @endif
 </x-guest-layout>
