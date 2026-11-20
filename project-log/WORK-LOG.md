@@ -71,3 +71,8 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Syntax checked (`bash -n`). The Nginx-insert and php.ini edits were dry-tested on sample files. **Not yet run on the real server.**
 - Local git repo initialised (`main`); `.env`, `vendor`, `node_modules`, `public/build` and `.claude` are excluded. Initial commit `51cc0fd`.
 - GitHub repo `knsoftic/whats-apis` (public, as requested): waiting for it to be created on github.com before pushing.
+
+### 2026-11-20 · Pushed to GitHub
+- User created https://github.com/knsoftic/whats-apis (public). Pushed `main` (commits `51cc0fd`, `c3bc910` + this log update).
+- Checked: installer raw URL returns HTTP 200 with LF line endings; `.env` is not in the repo (404).
+- **Next (user):** run the one command on the aaPanel server, then make the repo private.
