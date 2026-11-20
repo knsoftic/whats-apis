@@ -68,4 +68,5 @@
 
 <div class="border-t border-slate-200 px-5 py-4 text-[11px] text-slate-400 dark:border-slate-800 dark:text-slate-500">
     Official Meta WhatsApp Cloud API<br>© {{ date('Y') }} KN Softic
+    <span class="mt-1 block"><a href="{{ route('legal.privacy') }}" class="hover:text-slate-600 dark:hover:text-slate-300">Privacy</a> · <a href="{{ route('legal.terms') }}" class="hover:text-slate-600 dark:hover:text-slate-300">Terms</a></span>
 </div>

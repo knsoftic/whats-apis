@@ -51,6 +51,10 @@
                 </div>
             </div>
             {{ $slot }}
+            <p class="mt-10 flex justify-center gap-4 text-xs text-slate-500">
+                <a href="{{ route('legal.privacy') }}" class="hover:text-slate-800 dark:hover:text-slate-300">Privacy Policy</a>
+                <a href="{{ route('legal.terms') }}" class="hover:text-slate-800 dark:hover:text-slate-300">Terms &amp; Conditions</a>
+            </p>
         </div>
     </div>
 </div>

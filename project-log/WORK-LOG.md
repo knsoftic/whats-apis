@@ -87,3 +87,9 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Built: Meta Tech Provider settings (encrypted), "Connect with Meta" page (FB JS SDK + ES v4), server onboarding (code exchange, debug_token WABA check, subscribed_apps, /register with PIN, coexistence), shared platform webhook `/api/webhooks/whatsapp`, account page registration retry. Manual entry unchanged.
 - Bug found by a test: second `Http::fake` did not override the first (test-only) → used a response sequence.
 - **Result:** ✅ 180 tests pass (704 assertions). UI checked in browser (accounts page, settings page). Live Embedded Signup not tested — needs the user's Tech Provider app on https.
+
+### 2026-11-20 · Legal pages
+- Public `/privacy-policy` (incl. `#data-deletion` instructions for Meta) and `/terms-conditions`, branded layout, light/dark; linked from login page and sidebar.
+- Company, contact email, address, jurisdiction and effective date come from `LEGAL_*` env values (`config/legal.php`).
+- Content is a solid template written for a WhatsApp Cloud API SaaS. It is not legal advice and should be reviewed for the business.
+- **Result:** ✅ 183 tests pass. Pages checked in browser.

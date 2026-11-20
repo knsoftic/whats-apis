@@ -103,7 +103,11 @@ Meta can only call a **public HTTPS** URL (your VPS domain, or a tunnel during l
 Click **Subscribe app to WABA** on the account page (calls `POST /{waba-id}/subscribed_apps`). Without it Meta does not deliver webhooks for that WABA.
 
 ## 9. Go live
-- App Dashboard → **Publish / App mode: Live** (needs a Privacy Policy URL). In development mode Meta only sends webhooks for test numbers and app roles.
+- App Dashboard → **App settings → Basic**:
+  - Privacy Policy URL: `https://YOUR-DOMAIN/privacy-policy`
+  - Terms of Service URL: `https://YOUR-DOMAIN/terms-conditions`
+  - User data deletion → Data deletion instructions URL: `https://YOUR-DOMAIN/privacy-policy#data-deletion`
+- App Dashboard → **Publish / App mode: Live**. In development mode Meta only sends webhooks for test numbers and app roles.
 - WhatsApp Manager → **Payment settings**: add a payment method for business-initiated (template) messages.
 - **Test number only:** add up to 5 recipient numbers on API Setup ("To" list), otherwise sending fails with error 131030.
 

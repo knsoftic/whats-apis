@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
 
+// Public legal pages (also used as Privacy Policy / Terms URLs in the Meta app).
+Route::view('/privacy-policy', 'legal.privacy')->name('legal.privacy');
+Route::view('/terms-conditions', 'legal.terms')->name('legal.terms');
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', DashboardController::class)
         ->middleware('permission:'.P::DASHBOARD_VIEW)
