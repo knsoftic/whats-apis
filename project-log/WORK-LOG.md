@@ -76,3 +76,8 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - User created https://github.com/knsoftic/whats-apis (public). Pushed `main` (commits `51cc0fd`, `c3bc910` + this log update).
 - Checked: installer raw URL returns HTTP 200 with LF line endings; `.env` is not in the repo (404).
 - **Next (user):** run the one command on the aaPanel server, then make the repo private.
+
+### 2026-11-20 · First server run (aaPanel, PHP 8.4)
+- Server has PHP 8.4 → installer now auto-detects the newest aaPanel PHP (commit `090d7d3`); all 91 packages allow 8.4.
+- Run 1: steps 1–10 ✅ (incl. Nginx updated + reloaded). Step 11 ❌ "Failed at line 286": `find_sup_conf` returned non-zero when no supervisord.conf existed (`set -e` bug in the script).
+- Fixed (commit `c677e7e`) + added `php artisan admin:reset-password {email}`. Re-run needed from step 1 (script is idempotent).
