@@ -55,3 +55,42 @@ The existing `BotFlowTest` (8) still passes. **252 passed (1139 assertions).**
 6. The test flow was deleted afterwards.
 
 Not tested live: the bot actually replying on WhatsApp, which needs a real connected number. The engine is covered by the automated tests with Meta faked.
+
+## Update 2026-11-20 — Question + Condition nodes
+**Question node** (cyan):
+- Sends a question and **waits for the customer's next message**, for up to 24 h (`WHATSAPP_BOT_ANSWER_TIMEOUT` minutes).
+- Saves the answer as a **variable** (e.g. `topic`) and can also save it to the **contact name / email**.
+- Answer check: any text / number / email / phone. A wrong answer gets a retry message; after the last try the flow continues from **✗ No valid answer**.
+- Two outputs: **✓ Answer** and **✗ No valid answer**.
+
+**Condition node** (orange, if / else): rules are checked top to bottom, each rule has **its own output**, and there is an **Otherwise** output. Rule kinds:
+- **Text / answer**: the customer's message or a saved answer — contains / is exactly / starts with / does not contain / is (not) empty / number greater / less. Several words can be separated by commas (“order, khareed”), and matching is not case-sensitive.
+- **Business hours**: days plus from/to time in the server time zone; overnight windows such as 22:00 → 06:00 work.
+- **Contact tag**: has / does not have a tag.
+- **New contact**: first message in the last 24 h, or returning.
+
+**Variables**: `{{topic}}`, `{{contact_name}}` and `{{phone}}` work in every message, caption, menu text and handoff text. The Message panel has click-to-insert buttons.
+
+**Rules while the bot waits for an answer:**
+- The next message is the answer, even if it matches a keyword.
+- A tapped bot menu button cancels the question.
+- When an agent replies, a handoff happens or the timeout passes, the bot stops waiting.
+- Saved answers are stored per chat in `conversations.bot_state` (migration `2026_11_20_600000`).
+
+**Tests:** `BotQuestionConditionTest` (9) covers:
+- waiting for and saving the answer, placeholders, saving to contact name and email;
+- retry, then the invalid path;
+- condition on the saved answer;
+- business hours (incl. overnight), tags, new contact, numbers, empty;
+- a condition on the incoming message;
+- a menu tap cancels a question; timeout; an agent reply clears the wait;
+- builder validation;
+- **the exact graph built in the browser runs end to end** (fixture `tests/Fixtures/canvas-question-condition.json`).
+
+**261 passed (1219 assertions).**
+
+**Browser test (real mouse):**
+- Built Trigger → Message → Question (`topic`) → Condition with rule 1 “{{topic}} contains order, khareed” and rule 2 “Mon–Sat 09:00–18:00” → Message / Message / Handoff.
+- Wired the Answer, rule and Otherwise dots, and saved → the edit page reopened intact.
+- The variable name was cleaned automatically (`Topic Type!` → `topic_type_`).
+- The panel's fade animation was removed so the canvas widens instantly when the panel closes.

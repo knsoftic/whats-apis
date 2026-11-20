@@ -165,6 +165,9 @@ class BotFlowController extends Controller
             'accounts' => $accounts,
             'targets' => $targets,
             'graph' => is_array($old) ? $old : ($flow->exists || $flow->graph ? $flow->flowGraph() : BotGraph::starter()),
+            // Tag names per number (Condition → contact tag).
+            'tags' => \App\Models\Tag::whereIn('whatsapp_account_id', $accounts->pluck('id'))->orderBy('name')->get(['name', 'whatsapp_account_id'])
+                ->groupBy('whatsapp_account_id')->map(fn ($g) => $g->pluck('name')->values()),
         ];
     }
 

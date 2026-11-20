@@ -9,14 +9,18 @@
 // Node geometry (px) — must match the Blade markup.
 const W = 260; // node width
 const HEAD_CENTER = 23; // vertical centre of the header (ports)
-const ROWS_TOP = 97; // first menu option row (1 border + 44 header + 52 body)
-const ROW = 34; // menu option row height
+const ROWS_TOP = 97; // first output row (1 border + 44 header + 52 body)
+const ROW = 34; // output row height (menu options, question results, condition rules)
+const ROW_NODES = ['menu', 'question', 'condition'];
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const GRID = 20;
 
 const META = {
     trigger: { label: 'Trigger', icon: 'bolt', tone: 'amber', hint: 'When the flow starts' },
     text: { label: 'Message', icon: 'chat', tone: 'sky', hint: 'Send a text message' },
     menu: { label: 'Menu', icon: 'menu', tone: 'violet', hint: 'Buttons / list — each option has its own path' },
+    question: { label: 'Question', icon: 'note', tone: 'cyan', hint: 'Ask, wait for the reply, save it' },
+    condition: { label: 'Condition', icon: 'filter', tone: 'orange', hint: 'If / else — split the flow by rules' },
     image: { label: 'Image', icon: 'photo', tone: 'emerald', hint: 'Send a picture with a caption' },
     document: { label: 'Document', icon: 'paperclip', tone: 'slate', hint: 'Send a PDF or other file' },
     handoff: { label: 'Handoff to agent', icon: 'user', tone: 'rose', hint: 'Pause the bot, a person takes over' },
@@ -31,7 +35,11 @@ const TONES = {
     slate: 'bg-slate-100 text-slate-700 dark:bg-slate-700/40 dark:text-slate-200',
     rose: 'bg-rose-50 text-rose-800 dark:bg-rose-500/10 dark:text-rose-300',
     indigo: 'bg-indigo-50 text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-300',
+    cyan: 'bg-cyan-50 text-cyan-800 dark:bg-cyan-500/10 dark:text-cyan-300',
+    orange: 'bg-orange-50 text-orange-800 dark:bg-orange-500/10 dark:text-orange-300',
 };
+
+const newRule = () => ({ id: uid('r'), kind: 'text', subject: 'message', var: '', op: 'contains', value: '', days: [1, 2, 3, 4, 5], from: '09:00', to: '18:00' });
 
 const uid = (prefix) => prefix + Math.random().toString(36).slice(2, 8);
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -51,6 +59,8 @@ const defaults = (type) =>
         },
         image: { url: '', caption: '' },
         document: { url: '', caption: '', filename: '' },
+        question: { text: '', var: 'name', validate: 'any', retry_text: '', attempts: 2, save_to: 'none' },
+        condition: { rules: [newRule()] },
         handoff: { text: 'Connecting you to our team — please wait a moment.' },
         goto: { flow_id: '' },
     })[type];
@@ -63,7 +73,10 @@ export default (cfg) => ({
     accounts: cfg.accounts || [],
     triggers: cfg.triggers,
     matches: cfg.matches,
+    textOps: cfg.textOps,
+    tags: cfg.tags || {},
     meta: META,
+    days: DAYS,
 
     pan: { x: 40, y: 40 },
     zoom: 1,
@@ -141,6 +154,10 @@ export default (cfg) => ({
                 return d.text || 'Click to write the message…';
             case 'menu':
                 return d.text || 'Menu message…';
+            case 'question':
+                return d.text || 'Ask a question…';
+            case 'condition':
+                return 'Checked top to bottom — the first rule that matches wins.';
             case 'image':
                 return d.caption || d.url || 'Add a public image link…';
             case 'document':
@@ -162,12 +179,64 @@ export default (cfg) => ({
     isConnected(nodeId, port) {
         return this.edges.some((e) => e.from === nodeId && e.port === port);
     },
+    isRowNode(node) {
+        return ROW_NODES.includes(node.type);
+    },
+    /** Output rows (each with its own dot) for menu / question / condition nodes. */
+    rows(node) {
+        if (node.type === 'menu') return node.data.options.map((o) => ({ id: o.id, label: o.title || 'Option', required: true }));
+        if (node.type === 'question')
+            return [
+                { id: 'out', label: `✓ Answer → {{${node.data.var || 'answer'}}}` },
+                { id: 'invalid', label: '✗ No valid answer' },
+            ];
+        if (node.type === 'condition') return [...node.data.rules.map((r, i) => ({ id: r.id, label: `${i + 1}. ${this.ruleLabel(r)}` })), { id: 'else', label: 'Otherwise' }];
+        return [];
+    },
+    nodeHeight(node) {
+        return ROWS_TOP + ROW * this.rows(node).length;
+    },
+    ruleLabel(r) {
+        if (r.kind === 'time') return `${(r.days || []).map((d) => DAYS[d - 1]).join(',') || '—'} ${r.from}–${r.to}`;
+        if (r.kind === 'tag') return `Tag ${r.op === 'has_not' ? 'is not' : 'is'} “${r.value || '…'}”`;
+        if (r.kind === 'new_contact') return r.op === 'is_not' ? 'Returning contact' : 'New contact';
+        const subject = r.subject === 'var' ? `{{${r.var || '…'}}}` : 'Message';
+        const op = (this.textOps[r.op] || r.op).toLowerCase();
+        return ['is_empty', 'not_empty'].includes(r.op) ? `${subject} ${op}` : `${subject} ${op} “${r.value || '…'}”`;
+    },
+    /** Variables saved by Question nodes in this flow (+ built-ins). */
+    knownVars() {
+        const vars = this.nodes.filter((n) => n.type === 'question' && n.data.var).map((n) => n.data.var);
+        return [...new Set([...vars, 'contact_name', 'phone'])];
+    },
+    accountTags() {
+        return this.tags[this.s.whatsapp_account_id] || [];
+    },
+    dropPort(nodeId, port) {
+        this.edges = this.edges.filter((e) => !(e.from === nodeId && e.port === port));
+    },
+    addRule() {
+        const n = this.current;
+        if (n && n.data.rules.length < 8) n.data.rules.push(newRule());
+    },
+    removeRule(i) {
+        const n = this.current;
+        const [r] = n.data.rules.splice(i, 1);
+        this.dropPort(n.id, r.id);
+    },
+    moveRule(i, dir) {
+        const list = this.current.data.rules;
+        const j = i + dir;
+        if (j < 0 || j >= list.length) return;
+        const [r] = list.splice(i, 1);
+        list.splice(j, 0, r);
+    },
 
     // ------------------------------------------------------------ geometry
     portPos(node, port) {
         if (port === 'in') return { x: node.x, y: node.y + HEAD_CENTER };
-        if (node.type === 'menu') {
-            const i = node.data.options.findIndex((o) => o.id === port);
+        if (this.isRowNode(node)) {
+            const i = this.rows(node).findIndex((r) => r.id === port);
             return { x: node.x + W, y: node.y + ROWS_TOP + ROW * Math.max(i, 0) + ROW / 2 };
         }
         return { x: node.x + W, y: node.y + HEAD_CENTER };
@@ -298,7 +367,7 @@ export default (cfg) => ({
         if (!r || !this.nodes.length) return;
         const xs = this.nodes.map((n) => n.x);
         const ys = this.nodes.map((n) => n.y);
-        const h = (n) => (n.type === 'menu' ? ROWS_TOP + ROW * n.data.options.length : ROWS_TOP);
+        const h = (n) => this.nodeHeight(n);
         const minX = Math.min(...xs) - 40;
         const minY = Math.min(...ys) - 40;
         const maxX = Math.max(...this.nodes.map((n) => n.x + W)) + 40;
@@ -321,7 +390,7 @@ export default (cfg) => ({
                 const c = this.$refs.canvas;
                 if (!n || !c) return;
                 const r = c.getBoundingClientRect();
-                const h = n.type === 'menu' ? ROWS_TOP + ROW * n.data.options.length : ROWS_TOP;
+                const h = this.nodeHeight(n);
                 const m = 40;
                 const left = this.pan.x + n.x * this.zoom;
                 const right = left + W * this.zoom;
@@ -390,6 +459,7 @@ export default (cfg) => ({
         if (!n || n.type === 'trigger') return;
         const copy = { ...clone(n), id: uid('n'), x: n.x + 40, y: n.y + 60 };
         if (copy.type === 'menu') copy.data.options = copy.data.options.map((o) => ({ ...o, id: uid('o') }));
+        if (copy.type === 'condition') copy.data.rules = copy.data.rules.map((r) => ({ ...r, id: uid('r') }));
         this.nodes.push(copy);
         this.select(copy.id);
     },

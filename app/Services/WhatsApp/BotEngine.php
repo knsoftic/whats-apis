@@ -12,6 +12,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\PlanGate;
 use App\Support\BotGraph;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -57,6 +58,12 @@ class BotEngine
             return null;
         }
 
+        // Waiting for the answer to a Question node? This message is the answer
+        // (a tapped bot menu button still wins).
+        if (! $this->isBotButton($inbound) && ($answered = $this->answerQuestion($flows, $inbound, $conversation))) {
+            return $answered;
+        }
+
         [$flow, $node, $port, $tapped] = $this->resolve($flows, $inbound, $conversation);
 
         // A tapped menu button always answers; cooldown is for keyword / welcome / fallback.
@@ -64,9 +71,197 @@ class BotEngine
             return null;
         }
 
+        if ($tapped) {
+            $this->setWaiting($conversation, null);
+        }
+
         $this->run($flow, $conversation, $inbound, $node, $port);
 
         return $flow;
+    }
+
+    private function isBotButton(Message $inbound): bool
+    {
+        return str_starts_with((string) ($inbound->content['reply']['id'] ?? $inbound->content['payload'] ?? ''), BotFlow::PAYLOAD_PREFIX);
+    }
+
+    // ------------------------------------------------------------------ Question
+
+    /**
+     * Treats the incoming message as the answer to the pending Question node.
+     * Valid → save it (variable + optional contact field) and continue on "out".
+     * Invalid → ask again; after the last attempt continue on "invalid".
+     *
+     * @param  Collection<int, BotFlow>  $flows
+     */
+    private function answerQuestion(Collection $flows, Message $inbound, Conversation $conversation): ?BotFlow
+    {
+        $state = $conversation->bot_state ?? [];
+        $waiting = $state['waiting'] ?? null;
+
+        if (! $waiting) {
+            return null;
+        }
+
+        $flow = $flows->firstWhere('id', (int) ($waiting['flow_id'] ?? 0));
+        $node = $flow?->isVisual() ? BotGraph::node($flow->graph, (string) ($waiting['node'] ?? '')) : null;
+        $expired = Carbon::parse($waiting['at'] ?? '2000-01-01')->addMinutes((int) config('whatsapp.bot.answer_timeout_minutes', 1440))->isPast();
+
+        if (! $node || $node['type'] !== 'question' || $expired) {
+            $this->setWaiting($conversation, null);
+
+            return null; // question gone / too old → handle as a normal message
+        }
+
+        $data = $node['data'];
+        $answer = trim((string) ($inbound->body ?? ''));
+
+        if (self::validAnswer($answer, (string) ($data['validate'] ?? 'any'))) {
+            $state['vars'][$data['var']] = Str::limit($answer, 500, '');
+            $state['waiting'] = null;
+            $conversation->forceFill(['bot_state' => $state])->save();
+            $this->saveToContact($conversation, (string) ($data['save_to'] ?? 'none'), $answer);
+            $this->runGraph($flow, $conversation, $inbound, $node['id'], 'out');
+
+            return $flow;
+        }
+
+        $attempts = (int) ($waiting['attempts'] ?? 0) + 1;
+
+        if ($attempts >= (int) ($data['attempts'] ?? 2)) {
+            $this->setWaiting($conversation, null);
+            $this->runGraph($flow, $conversation, $inbound, $node['id'], 'invalid');
+
+            return $flow;
+        }
+
+        $state['waiting']['attempts'] = $attempts;
+        $conversation->forceFill(['bot_state' => $state])->save();
+
+        $retry = filled($data['retry_text'] ?? null) ? (string) $data['retry_text'] : match ($data['validate'] ?? 'any') {
+            'number' => 'Please reply with a number.',
+            'email' => 'Please reply with a valid email address.',
+            'phone' => 'Please reply with a valid phone number.',
+            default => 'Please type your answer.',
+        };
+        $this->send($flow, $conversation, ['type' => 'text', 'text' => $this->fill($retry, $this->vars($conversation))]);
+
+        return $flow;
+    }
+
+    public static function validAnswer(string $answer, string $type): bool
+    {
+        return match ($type) {
+            'number' => is_numeric(str_replace([',', ' '], '', $answer)),
+            'email' => (bool) filter_var($answer, FILTER_VALIDATE_EMAIL),
+            'phone' => (bool) preg_match('/^\+?[0-9\s\-()]{7,20}$/', $answer) && strlen(preg_replace('/\D/', '', $answer)) >= 7,
+            default => $answer !== '',
+        };
+    }
+
+    private function saveToContact(Conversation $conversation, string $field, string $answer): void
+    {
+        $contact = $conversation->contact;
+
+        if ($field === 'name' && $contact) {
+            $contact->forceFill(['name' => Str::limit($answer, 100, '')])->save();
+        } elseif ($field === 'email' && $contact && filter_var($answer, FILTER_VALIDATE_EMAIL)) {
+            $contact->forceFill(['email' => Str::limit($answer, 150, '')])->save();
+        }
+    }
+
+    /** @param  array<string, mixed>|null  $waiting */
+    private function setWaiting(Conversation $conversation, ?array $waiting): void
+    {
+        $state = $conversation->bot_state ?? [];
+
+        if (($state['waiting'] ?? null) === $waiting) {
+            return;
+        }
+
+        $state['waiting'] = $waiting;
+        $conversation->forceFill(['bot_state' => $state])->save();
+    }
+
+    /**
+     * Saved answers + built-ins, for {{placeholders}} and conditions.
+     *
+     * @return array<string, string>
+     */
+    private function vars(Conversation $conversation): array
+    {
+        $contact = $conversation->contact;
+
+        return [
+            'contact_name' => (string) ($contact?->name ?: $contact?->profile_name ?: ''),
+            'phone' => (string) ($contact?->phone ?? ''),
+            ...($conversation->bot_state['vars'] ?? []),
+        ];
+    }
+
+    /** Replaces {{variable}} placeholders (unknown → empty). */
+    private function fill(string $text, array $vars): string
+    {
+        return preg_replace_callback('/\{\{\s*([a-z][a-z0-9_]*)\s*\}\}/i', fn ($m) => (string) ($vars[strtolower($m[1])] ?? ''), $text);
+    }
+
+    // ----------------------------------------------------------------- Condition
+
+    /** Id of the first matching rule, or "else". */
+    private function evaluate(array $node, Conversation $conversation, ?Message $trigger, array $vars): string
+    {
+        foreach ($node['data']['rules'] ?? [] as $rule) {
+            if ($this->ruleMatches($rule, $conversation, $trigger, $vars)) {
+                return (string) $rule['id'];
+            }
+        }
+
+        return 'else';
+    }
+
+    /** @param  array<string, mixed>  $rule */
+    public function ruleMatches(array $rule, Conversation $conversation, ?Message $trigger, array $vars): bool
+    {
+        switch ($rule['kind'] ?? 'text') {
+            case 'time':
+                $now = now();
+                if (! in_array($now->dayOfWeekIso, $rule['days'] ?? [], true)) {
+                    return false;
+                }
+                $t = $now->format('H:i');
+                [$from, $to] = [(string) ($rule['from'] ?? '00:00'), (string) ($rule['to'] ?? '23:59')];
+
+                return $from <= $to ? ($t >= $from && $t < $to) : ($t >= $from || $t < $to); // overnight window
+
+            case 'tag':
+                $has = (bool) $conversation->contact?->tags()->whereRaw('LOWER(name) = ?', [mb_strtolower((string) $rule['value'])])->exists();
+
+                return ($rule['op'] ?? 'has') === 'has_not' ? ! $has : $has;
+
+            case 'new_contact':
+                $new = (bool) $conversation->contact?->created_at?->gt(now()->subDay());
+
+                return ($rule['op'] ?? 'is') === 'is_not' ? ! $new : $new;
+
+            default: // text
+                $subject = ($rule['subject'] ?? 'message') === 'var' ? (string) ($vars[$rule['var'] ?? ''] ?? '') : (string) ($trigger?->body ?? '');
+                $s = mb_strtolower(trim($subject));
+                $value = mb_strtolower(trim((string) ($rule['value'] ?? '')));
+                // "yes, haan, ji" → any of these
+                $options = array_values(array_filter(array_map('trim', explode(',', $value)), fn ($o) => $o !== ''));
+                $number = str_replace([',', ' '], '', $s);
+
+                return match ($rule['op'] ?? 'contains') {
+                    'equals' => in_array($s, $options, true),
+                    'starts_with' => collect($options)->contains(fn ($o) => str_starts_with($s, $o)),
+                    'not_contains' => ! collect($options)->contains(fn ($o) => str_contains($s, $o)),
+                    'is_empty' => $s === '',
+                    'not_empty' => $s !== '',
+                    'number_gt' => is_numeric($number) && (float) $number > (float) $value,
+                    'number_lt' => is_numeric($number) && (float) $number < (float) $value,
+                    default => collect($options)->contains(fn ($o) => str_contains($s, $o)),
+                };
+        }
     }
 
     /**
@@ -162,6 +357,7 @@ class BotEngine
         $sent = 0;
         $jumps = 0;
         $guard = 0;
+        $vars = $this->vars($conversation);
 
         while ($current !== null && $guard++ < 100) {
             $node = BotGraph::node($graph, $current);
@@ -188,10 +384,16 @@ class BotEngine
                 continue;
             }
 
+            if ($type === 'condition') {
+                $current = BotGraph::next($graph, $node['id'], $this->evaluate($node, $conversation, $trigger, $vars));
+
+                continue; // sends nothing
+            }
+
             if ($type === 'handoff') {
                 $this->handoff($conversation);
 
-                if (filled($data['text'] ?? null) && $budget > 0 && $this->send($flow, $conversation, ['type' => 'text', 'text' => $data['text']])) {
+                if (filled($data['text'] ?? null) && $budget > 0 && $this->send($flow, $conversation, ['type' => 'text', 'text' => $this->fill((string) $data['text'], $vars)])) {
                     $sent++;
                 }
 
@@ -202,7 +404,22 @@ class BotEngine
                 break;
             }
 
+            if ($type === 'question') {
+                if ($this->send($flow, $conversation, ['type' => 'text', 'text' => $this->fill((string) ($data['text'] ?? ''), $vars)])) {
+                    $sent++;
+                    $this->setWaiting($conversation, ['flow_id' => $flow->id, 'node' => $node['id'], 'attempts' => 0, 'at' => now()->toIso8601String()]);
+                }
+
+                break; // wait for the customer's answer
+            }
+
             $step = ['type' => $type] + $data;
+
+            foreach (['text', 'caption', 'footer'] as $field) {
+                if (is_string($step[$field] ?? null)) {
+                    $step[$field] = $this->fill($step[$field], $vars);
+                }
+            }
 
             if ($type === 'menu') {
                 $step['options'] = array_map(fn ($o) => $o + [
@@ -271,9 +488,13 @@ class BotEngine
 
     private function handoff(Conversation $conversation): void
     {
+        $state = $conversation->bot_state ?? [];
+        $state['waiting'] = null;
+
         $conversation->forceFill([
             'bot_paused_until' => now()->addHours((int) config('whatsapp.bot.handoff_hours', 24)),
             'status' => Conversation::STATUS_OPEN,
+            'bot_state' => $state,
         ])->save();
     }
 

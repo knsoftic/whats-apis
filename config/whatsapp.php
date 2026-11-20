@@ -54,6 +54,8 @@ return [
         'max_steps' => 8,
         // Visual builder: most nodes in one flow.
         'max_nodes' => 40,
+        // A Question node waits this long for the customer's answer.
+        'answer_timeout_minutes' => (int) env('WHATSAPP_BOT_ANSWER_TIMEOUT', 1440),
     ],
 
     // Outgoing messages per minute per user (dashboard sending).

@@ -19,17 +19,37 @@ use Illuminate\Validation\ValidationException;
  *   image     → out                       data: url, caption
  *   document  → out                       data: url, caption, filename
  *   menu      → one port per option id    data: text, footer, button_label, options[{id,title,description}]
+ *   question  → out (answered), invalid   data: text, var, validate, retry_text, attempts, save_to
+ *   condition → one port per rule id, else data: rules[{id, kind, …}]
  *   handoff   → (none, ends the flow)     data: text
  *   goto      → (none, opens another flow) data: flow_id
  */
 class BotGraph
 {
-    public const TYPES = ['trigger', 'text', 'menu', 'image', 'document', 'handoff', 'goto'];
+    public const TYPES = ['trigger', 'text', 'menu', 'question', 'condition', 'image', 'document', 'handoff', 'goto'];
 
     public const LABELS = [
-        'trigger' => 'Trigger', 'text' => 'Message', 'menu' => 'Menu', 'image' => 'Image',
-        'document' => 'Document', 'handoff' => 'Handoff to agent', 'goto' => 'Go to flow',
+        'trigger' => 'Trigger', 'text' => 'Message', 'menu' => 'Menu', 'question' => 'Question', 'condition' => 'Condition',
+        'image' => 'Image', 'document' => 'Document', 'handoff' => 'Handoff to agent', 'goto' => 'Go to flow',
     ];
+
+    /** Question node: how the answer is checked. */
+    public const VALIDATIONS = ['any' => 'Any text', 'number' => 'Number', 'email' => 'Email address', 'phone' => 'Phone number'];
+
+    /** Question node: also store the answer on the contact. */
+    public const SAVE_TO = ['none' => 'Only as a variable', 'name' => 'Contact name', 'email' => 'Contact email'];
+
+    /** Condition rule kinds and their operators. */
+    public const CONDITION_KINDS = ['text' => 'Text / answer', 'time' => 'Business hours', 'tag' => 'Contact tag', 'new_contact' => 'New contact'];
+
+    public const TEXT_OPS = [
+        'contains' => 'contains', 'equals' => 'is exactly', 'starts_with' => 'starts with', 'not_contains' => 'does not contain',
+        'is_empty' => 'is empty', 'not_empty' => 'is not empty', 'number_gt' => 'number greater than', 'number_lt' => 'number less than',
+    ];
+
+    public const VAR_PATTERN = '/^[a-z][a-z0-9_]{0,29}$/';
+
+    private const TIME = '/^([01]\d|2[0-3]):[0-5]\d$/';
 
     private const ID = '/^[A-Za-z0-9_-]{1,24}$/';
 
@@ -94,7 +114,7 @@ class BotGraph
             }
 
             $path[] = self::LABELS[$node['type']].($node['type'] === 'menu' ? ' ('.count($node['data']['options'] ?? []).')' : '');
-            $current = $node['type'] === 'menu' ? null : self::next($graph, $current);
+            $current = in_array($node['type'], ['menu', 'condition', 'handoff', 'goto'], true) ? null : self::next($graph, $current);
         }
 
         $count = max(0, count($graph['nodes'] ?? []) - 1);
@@ -280,6 +300,79 @@ class BotGraph
                         }
                     }
                     $ports[$id] = array_column($options, 'id');
+                    break;
+
+                case 'question':
+                    $data = [
+                        'text' => $s('text'),
+                        'var' => strtolower($s('var')),
+                        'validate' => array_key_exists($s('validate'), self::VALIDATIONS) ? $s('validate') : 'any',
+                        'retry_text' => $s('retry_text'),
+                        'attempts' => max(1, min(5, (int) ($d['attempts'] ?? 2))),
+                        'save_to' => array_key_exists($s('save_to'), self::SAVE_TO) ? $s('save_to') : 'none',
+                    ];
+                    if ($data['text'] === '' || mb_strlen($data['text']) > 1024) {
+                        $errors[] = "{$label}: the question is required (max 1024 characters).";
+                    }
+                    if (! preg_match(self::VAR_PATTERN, $data['var'])) {
+                        $errors[] = "{$label}: save the answer as a variable name like name or order_no (small letters, numbers, _).";
+                    }
+                    if (mb_strlen($data['retry_text']) > 1024) {
+                        $errors[] = "{$label}: retry message max 1024 characters.";
+                    }
+                    $ports[$id] = ['out', 'invalid'];
+                    break;
+
+                case 'condition':
+                    $rules = [];
+                    foreach (array_slice(is_array($d['rules'] ?? null) ? $d['rules'] : [], 0, 9) as $j => $r) {
+                        $rid = (string) ($r['id'] ?? '');
+                        if (! preg_match(self::ID, $rid) || in_array($rid, ['out', 'else'], true) || isset($rules[$rid])) {
+                            $fail('The flow contains an invalid condition rule — please reload the page.');
+                        }
+                        $n = $j + 1;
+                        $kind = array_key_exists((string) ($r['kind'] ?? ''), self::CONDITION_KINDS) ? (string) $r['kind'] : 'text';
+                        $rule = ['id' => $rid, 'kind' => $kind];
+
+                        if ($kind === 'text') {
+                            $rule['subject'] = ($r['subject'] ?? 'message') === 'var' ? 'var' : 'message';
+                            $rule['var'] = strtolower(trim((string) ($r['var'] ?? '')));
+                            $rule['op'] = array_key_exists((string) ($r['op'] ?? ''), self::TEXT_OPS) ? (string) $r['op'] : 'contains';
+                            $rule['value'] = trim((string) ($r['value'] ?? ''));
+                            if ($rule['subject'] === 'var' && ! preg_match(self::VAR_PATTERN, $rule['var'])) {
+                                $errors[] = "{$label}, rule {$n}: choose which saved answer (variable) to check.";
+                            }
+                            if (! in_array($rule['op'], ['is_empty', 'not_empty'], true) && ($rule['value'] === '' || mb_strlen($rule['value']) > 200)) {
+                                $errors[] = "{$label}, rule {$n}: enter the value to compare with (max 200 characters).";
+                            } elseif (in_array($rule['op'], ['number_gt', 'number_lt'], true) && ! is_numeric($rule['value'])) {
+                                $errors[] = "{$label}, rule {$n}: the value must be a number.";
+                            }
+                        } elseif ($kind === 'time') {
+                            $days = array_values(array_unique(array_filter(array_map('intval', (array) ($r['days'] ?? [])), fn ($day) => $day >= 1 && $day <= 7)));
+                            sort($days);
+                            $rule['days'] = $days;
+                            $rule['from'] = trim((string) ($r['from'] ?? ''));
+                            $rule['to'] = trim((string) ($r['to'] ?? ''));
+                            if ($days === [] || ! preg_match(self::TIME, $rule['from']) || ! preg_match(self::TIME, $rule['to'])) {
+                                $errors[] = "{$label}, rule {$n}: pick at least one day and a from / to time (HH:MM).";
+                            }
+                        } elseif ($kind === 'tag') {
+                            $rule['op'] = ($r['op'] ?? 'has') === 'has_not' ? 'has_not' : 'has';
+                            $rule['value'] = trim((string) ($r['value'] ?? ''));
+                            if ($rule['value'] === '' || mb_strlen($rule['value']) > 60) {
+                                $errors[] = "{$label}, rule {$n}: enter the tag name.";
+                            }
+                        } else {
+                            $rule['op'] = ($r['op'] ?? 'is') === 'is_not' ? 'is_not' : 'is';
+                        }
+
+                        $rules[$rid] = $rule;
+                    }
+                    if (count($rules) < 1 || count($rules) > 8) {
+                        $errors[] = "{$label}: add 1 to 8 rules.";
+                    }
+                    $data = ['rules' => array_values($rules)];
+                    $ports[$id] = [...array_keys($rules), 'else'];
                     break;
 
                 case 'handoff':

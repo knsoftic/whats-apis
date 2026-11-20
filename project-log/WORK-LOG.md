@@ -132,3 +132,10 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Older step flows keep working and open in the canvas.
 - Issues found while browser-testing and fixed: the settings panel covered the nodes (now a side column on wide screens, and the selected node is panned into view); stale connection errors are cleared after re-wiring; palette buttons now have labels for screen readers.
 - **Result:** ✅ 252 tests pass (1139 assertions). Browser-tested with real mouse drag, connect, move, save, delete-connection error and dark mode. Local test data removed.
+
+### 2026-11-20 · Bot builder — Question + Condition nodes
+- Question node: asks, waits for the reply (24 h), validates (any/number/email/phone) with retries, saves to a variable (+ contact name/email); outputs Answer / No valid answer.
+- Condition node: rules (text/answer, business hours, contact tag, new contact) with one output each + Otherwise.
+- `{{variables}}` work in messages. Bot memory is stored in `conversations.bot_state`; an agent reply, a handoff, a menu tap or the timeout clears the wait.
+- Browser-tested with a real mouse (built and saved Trigger → Message → Question → Condition → 3 paths). The saved JSON is now a test fixture and runs end to end.
+- **Result:** ✅ 261 tests pass (1219 assertions). Local test flow removed.

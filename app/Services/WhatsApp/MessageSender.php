@@ -212,6 +212,8 @@ class MessageSender
                 'last_message_at' => now(),
                 // A human replied → bots stay quiet in this chat for a while.
                 'bot_paused_until' => now()->addMinutes((int) config('whatsapp.bot.pause_after_agent_minutes', 60)),
+                // …and stops waiting for an answer to a bot question.
+                'bot_state' => null,
             ])->save();
 
             return $message;

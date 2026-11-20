@@ -31,6 +31,7 @@ class Conversation extends Model
         'last_inbound_at',
         'assigned_user_id',
         'bot_paused_until',
+        'bot_state',
     ];
 
     protected function casts(): array
@@ -40,6 +41,7 @@ class Conversation extends Model
             'last_message_at' => 'datetime',
             'last_inbound_at' => 'datetime',
             'bot_paused_until' => 'datetime',
+            'bot_state' => 'array',
         ];
     }
 

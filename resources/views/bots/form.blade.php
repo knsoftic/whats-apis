@@ -21,9 +21,11 @@
         'maxNodes' => (int) config('whatsapp.bot.max_nodes', 40),
         'triggers' => \App\Models\BotFlow::TRIGGERS,
         'matches' => \App\Models\BotFlow::MATCHES,
+        'textOps' => \App\Support\BotGraph::TEXT_OPS,
+        'tags' => $tags,
     ];
-    $palette = ['text', 'menu', 'image', 'document', 'handoff', 'goto'];
-    $icons = ['bolt', 'chat', 'menu', 'photo', 'paperclip', 'user', 'arrow-up-right', 'trash', 'copy', 'plus', 'x', 'chevron-down', 'warning'];
+    $palette = ['text', 'menu', 'question', 'condition', 'image', 'document', 'handoff', 'goto'];
+    $icons = ['bolt', 'chat', 'menu', 'note', 'filter', 'photo', 'paperclip', 'user', 'arrow-up-right', 'trash', 'copy', 'plus', 'x', 'chevron-down', 'warning'];
 @endphp
 <x-app-layout :title="$editing ? 'Edit bot flow' : 'New bot flow'" :full="true">
     <div class="flex h-full min-h-0 flex-col" x-data="botBuilder(@js($cfg))" @keydown.window="onKey($event)">
@@ -119,20 +121,22 @@
                                 <span x-html="iconSvg(meta[node.type].icon)"></span>
                                 <span class="truncate text-sm font-semibold" x-text="title(node)"></span>
                                 <span x-show="node.type === 'menu'" class="ml-auto rounded-full bg-white/70 px-1.5 text-[10px] font-semibold dark:bg-black/20" x-text="node.data.options?.length > 3 ? 'list' : 'buttons'"></span>
+                                <span x-show="node.type === 'question'" class="ml-auto truncate rounded-full bg-white/70 px-1.5 font-mono text-[10px] font-semibold dark:bg-black/20" x-text="(node.data.validate || 'any') === 'any' ? 'text' : node.data.validate"></span>
                             </div>
                             {{-- body (52px) --}}
                             <div class="h-[52px] overflow-hidden border-t border-slate-100 px-3 py-2 dark:border-slate-800">
                                 <p class="line-clamp-2 break-words text-xs leading-[18px] text-slate-600 dark:text-slate-400" x-text="preview(node)"></p>
                             </div>
-                            {{-- menu options (34px each), one output per option --}}
-                            <template x-if="node.type === 'menu'">
+                            {{-- output rows (34px each): menu options, question answer / invalid, condition rules + otherwise --}}
+                            <template x-if="isRowNode(node)">
                                 <div>
-                                    <template x-for="o in node.data.options" :key="o.id">
-                                        <div class="relative flex h-[34px] items-center border-t border-slate-100 px-3 text-xs font-medium text-slate-700 dark:border-slate-800 dark:text-slate-200">
-                                            <span class="truncate pr-3" x-text="o.title || 'Option'"></span>
+                                    <template x-for="row in rows(node)" :key="row.id">
+                                        <div class="relative flex h-[34px] items-center border-t border-slate-100 px-3 text-xs font-medium text-slate-700 dark:border-slate-800 dark:text-slate-200"
+                                             :class="row.id === 'else' || row.id === 'invalid' ? 'text-slate-500 dark:text-slate-400' : ''">
+                                            <span class="truncate pr-3" x-text="row.label"></span>
                                             <span class="absolute -right-[8px] top-1/2 h-4 w-4 -translate-y-1/2 cursor-crosshair rounded-full border-2 border-white shadow ring-1 dark:border-slate-900"
-                                                  :class="isConnected(node.id, o.id) ? 'bg-violet-500 ring-violet-300' : 'bg-white ring-rose-400 dark:bg-slate-700'"
-                                                  @pointerdown.stop.prevent="startLink($event, node, o.id)" title="Drag to connect this option"></span>
+                                                  :class="isConnected(node.id, row.id) ? 'bg-violet-500 ring-violet-300' : (row.required ? 'bg-white ring-rose-400 dark:bg-slate-700' : 'bg-white ring-slate-400 dark:bg-slate-700')"
+                                                  @pointerdown.stop.prevent="startLink($event, node, row.id)" title="Drag to connect"></span>
                                         </div>
                                     </template>
                                 </div>
@@ -172,7 +176,7 @@
             </div>
 
             {{-- ================================================ Settings panel --}}
-            <aside x-show="current" x-cloak x-transition.opacity
+            <aside x-show="current" x-cloak
                    class="absolute inset-y-0 right-0 z-20 flex w-[22rem] max-w-[92vw] shrink-0 flex-col border-l border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 lg:static lg:max-w-none lg:shadow-none">
                 <template x-if="current">
                     <div class="flex min-h-0 flex-1 flex-col">
@@ -249,6 +253,7 @@
                                     <label class="form-label">Message</label>
                                     <textarea rows="7" class="form-input" x-model="current.data.text" maxlength="4096" placeholder="Hi! How can we help you today?"></textarea>
                                     <p class="form-help"><span x-text="(current.data.text || '').length"></span>/4096 · *bold* _italic_ and links work.</p>
+                                    <p class="form-help">Insert saved answers: <template x-for="v in knownVars()" :key="v"><button type="button" class="mr-1 rounded bg-slate-100 px-1 font-mono text-[11px] hover:bg-brand-50 dark:bg-slate-800" @click="current.data.text = (current.data.text || '') + '{' + '{' + v + '}' + '}'" x-text="'{' + '{' + v + '}' + '}'"></button></template></p>
                                 </div>
                             </template>
 
@@ -291,6 +296,128 @@
                                         <label class="form-label">List button label</label>
                                         <input type="text" class="form-input" x-model="current.data.button_label" maxlength="20" placeholder="Choose">
                                     </div>
+                                </div>
+                            </template>
+
+                            {{-- Question --}}
+                            <template x-if="current.type === 'question'">
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="form-label">Question</label>
+                                        <textarea rows="3" class="form-input" x-model="current.data.text" maxlength="1024" placeholder="What is your name?"></textarea>
+                                        <p class="form-help">The bot sends this and waits for the customer's next message ({{ (int) config('whatsapp.bot.answer_timeout_minutes') / 60 }} h max).</p>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Save the answer as</label>
+                                        <div class="flex items-center gap-1 font-mono text-sm">
+                                            <span class="text-slate-400">&#123;&#123;</span>
+                                            <input type="text" class="form-input font-mono" x-model="current.data.var" maxlength="30" placeholder="name"
+                                                   @input="current.data.var = $event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/^[^a-z]+/, '')">
+                                            <span class="text-slate-400">&#125;&#125;</span>
+                                        </div>
+                                        <p class="form-help">Use it later in messages, e.g. “Thanks <span class="font-mono" x-text="'{' + '{' + (current.data.var || 'name') + '}' + '}'"></span>!”, or check it in a Condition.</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="form-label">Answer must be</label>
+                                            <select class="form-input" x-model="current.data.validate">
+                                                @foreach (\App\Support\BotGraph::VALIDATIONS as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="form-label">Tries</label>
+                                            <input type="number" min="1" max="5" class="form-input" x-model.number="current.data.attempts">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">If the answer is not valid, say <span class="font-normal text-slate-400">(optional)</span></label>
+                                        <input type="text" class="form-input" x-model="current.data.retry_text" maxlength="1024" placeholder="Please send a valid email address.">
+                                        <p class="form-help">After the last try the flow continues from <strong>✗ No valid answer</strong>.</p>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Also save to the contact</label>
+                                        <select class="form-input" x-model="current.data.save_to">
+                                            @foreach (\App\Support\BotGraph::SAVE_TO as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </template>
+
+                            {{-- Condition --}}
+                            <template x-if="current.type === 'condition'">
+                                <div class="space-y-3">
+                                    <p class="rounded-xl bg-orange-50 px-3 py-2 text-xs text-orange-900 dark:bg-orange-500/10 dark:text-orange-200">Rules are checked top to bottom. The first one that matches continues from its dot; if none matches → <strong>Otherwise</strong>. Server time zone: {{ config('app.timezone') }}.</p>
+                                    <template x-for="(rule, i) in current.data.rules" :key="rule.id">
+                                        <div class="space-y-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                                            <div class="flex items-center gap-1">
+                                                <span class="w-5 text-xs font-semibold text-slate-400" x-text="(i + 1) + '.'"></span>
+                                                <select class="form-input !py-1.5" x-model="rule.kind" @change="rule.op = ({ text: 'contains', tag: 'has', new_contact: 'is', time: 'contains' })[rule.kind]">
+                                                    @foreach (\App\Support\BotGraph::CONDITION_KINDS as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                                                </select>
+                                                <button type="button" class="rounded p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30" @click="moveRule(i, -1)" :disabled="i === 0" aria-label="Move up"><span class="block rotate-180" x-html="iconSvg('chevron-down')"></span></button>
+                                                <button type="button" class="rounded p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30" @click="moveRule(i, 1)" :disabled="i === current.data.rules.length - 1" aria-label="Move down"><span x-html="iconSvg('chevron-down')"></span></button>
+                                                <button type="button" class="rounded p-1 text-rose-500 disabled:opacity-30" @click="removeRule(i)" :disabled="current.data.rules.length <= 1" aria-label="Remove rule"><span x-html="iconSvg('trash')"></span></button>
+                                            </div>
+
+                                            {{-- text / answer --}}
+                                            <div x-show="rule.kind === 'text'" class="space-y-2">
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <select class="form-input !py-1.5 text-xs" x-model="rule.subject" aria-label="What to check">
+                                                        <option value="message">Customer's message</option>
+                                                        <option value="var">Saved answer…</option>
+                                                    </select>
+                                                    <select class="form-input !py-1.5 text-xs" x-show="rule.subject === 'var'" x-model="rule.var" aria-label="Variable">
+                                                        <option value="">Choose…</option>
+                                                        <template x-for="v in knownVars()" :key="v"><option :value="v" x-text="'{' + '{' + v + '}' + '}'" :selected="v === rule.var"></option></template>
+                                                    </select>
+                                                </div>
+                                                <select class="form-input !py-1.5 text-xs" x-model="rule.op" aria-label="Operator">
+                                                    @foreach (\App\Support\BotGraph::TEXT_OPS as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                                                </select>
+                                                <input type="text" class="form-input !py-1.5 text-xs" x-model="rule.value" maxlength="200" x-show="!['is_empty', 'not_empty'].includes(rule.op)"
+                                                       :placeholder="['number_gt', 'number_lt'].includes(rule.op) ? '1000' : 'yes, haan, ji'">
+                                                <p class="text-[11px] text-slate-500" x-show="['contains', 'equals', 'starts_with', 'not_contains'].includes(rule.op)">Separate several words with commas — any of them matches. Not case-sensitive.</p>
+                                            </div>
+
+                                            {{-- business hours --}}
+                                            <div x-show="rule.kind === 'time'" class="space-y-2">
+                                                <div class="flex flex-wrap gap-1">
+                                                    <template x-for="(d, di) in days" :key="d">
+                                                        <label class="cursor-pointer">
+                                                            <input type="checkbox" class="peer sr-only" :value="di + 1" x-model.number="rule.days">
+                                                            <span class="block rounded-lg border border-slate-200 px-2 py-1 text-xs peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-800 dark:border-slate-700 dark:peer-checked:bg-brand-500/10 dark:peer-checked:text-brand-200" x-text="d"></span>
+                                                        </label>
+                                                    </template>
+                                                </div>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <label class="text-xs text-slate-500">From<input type="time" class="form-input mt-1 !py-1.5 text-xs" x-model="rule.from"></label>
+                                                    <label class="text-xs text-slate-500">To<input type="time" class="form-input mt-1 !py-1.5 text-xs" x-model="rule.to"></label>
+                                                </div>
+                                                <p class="text-[11px] text-slate-500">Matches when a message arrives on these days between these times (e.g. open hours). 22:00 → 06:00 works overnight.</p>
+                                            </div>
+
+                                            {{-- tag --}}
+                                            <div x-show="rule.kind === 'tag'" class="grid grid-cols-2 gap-2">
+                                                <select class="form-input !py-1.5 text-xs" x-model="rule.op" aria-label="Has / has not">
+                                                    <option value="has">has tag</option>
+                                                    <option value="has_not">does not have tag</option>
+                                                </select>
+                                                <input type="text" class="form-input !py-1.5 text-xs" x-model="rule.value" maxlength="60" placeholder="VIP" :list="'tags-' + rule.id">
+                                                <datalist :id="'tags-' + rule.id"><template x-for="t in accountTags()" :key="t"><option :value="t"></option></template></datalist>
+                                            </div>
+
+                                            {{-- new contact --}}
+                                            <div x-show="rule.kind === 'new_contact'">
+                                                <select class="form-input !py-1.5 text-xs" x-model="rule.op" aria-label="New or returning">
+                                                    <option value="is">is a new contact (first message in the last 24 h)</option>
+                                                    <option value="is_not">is a returning contact</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <button type="button" class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-40 dark:text-brand-400 dark:hover:bg-brand-500/10" @click="addRule()" :disabled="current.data.rules.length >= 8">
+                                        <span x-html="iconSvg('plus')"></span> Add rule
+                                    </button>
                                 </div>
                             </template>
 

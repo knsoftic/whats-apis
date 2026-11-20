@@ -8,8 +8,8 @@
 |---|---|
 | **Project folder** | `C:\xampp\htdocs\whts api mi` |
 | **Log started** | 2026-11-19 10:41 |
-| **Last updated** | 2026-11-20 (Phase 12 — visual bot builder) |
-| **Overall status** | ✅ **12 phases done** · **252 automated tests passing** · live checks with real Meta / PKPay credentials still pending (need your accounts) |
+| **Last updated** | 2026-11-20 (Phase 12 — Question + Condition nodes) |
+| **Overall status** | ✅ **12 phases done** · **261 automated tests passing** · live checks with real Meta / PKPay credentials still pending (need your accounts) |
 
 ---
 
@@ -41,7 +41,7 @@
 | 9 | **Registration, Plans & Bot Flows** | ✅ Code + tests (206) · ⏳ live bot test | 3 / 3 | [phase-9-registration-plans-bots.md](phases/phase-9-registration-plans-bots.md) |
 | 10 | **Settings center + PKPay self-purchase** (+ Super Admin payment status change) | ✅ Code + tests (245) · ⏳ live payment | 2 / 2 | [phase-10-settings-payments.md](phases/phase-10-settings-payments.md) |
 | 11 | **Public landing page (fully editable) + contact inbox** | ✅ Code + tests (238) · browser-checked | 3 / 3 | [phase-11-landing-page.md](phases/phase-11-landing-page.md) |
-| 12 | **Visual bot flow builder (n8n-style drag & drop + connections)** | ✅ Code + tests (252) · browser-tested | 4 / 4 | [phase-12-visual-bot-builder.md](phases/phase-12-visual-bot-builder.md) |
+| 12 | **Visual bot flow builder (n8n-style drag & drop + connections) + Question / Condition nodes** | ✅ Code + tests (261) · browser-tested | 5 / 5 | [phase-12-visual-bot-builder.md](phases/phase-12-visual-bot-builder.md) |
 
 ---
 
@@ -50,7 +50,7 @@
 | Report | What it contains |
 |---|---|
 | [STATUS.md](STATUS.md) | **क्या काम कर रहा है / क्या नहीं** — working features, limitations, what still needs real Meta credentials |
-| [TESTING.md](TESTING.md) | Every test file, results (252 pass), run history, manual/live checklist |
+| [TESTING.md](TESTING.md) | Every test file, results (261 pass), run history, manual/live checklist |
 | [WORK-LOG.md](WORK-LOG.md) | Time-stamped log of all work, problems and fixes |
 | [ENVIRONMENT-DECISIONS.md](ENVIRONMENT-DECISIONS.md) | Local environment, 16 technical decisions, deviations from the spec and why |
 | [REMAINING.md](REMAINING.md) | **क्या बाकी है** — the steps only you can do to go live, plus optional future ideas |
