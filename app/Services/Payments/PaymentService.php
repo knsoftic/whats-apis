@@ -141,7 +141,11 @@ class PaymentService
 
         if (! $amountOk || ! $currencyOk || ! $orderOk) {
             Log::warning('PKPay data does not match payment', ['payment' => $payment->id, 'source' => $source]);
-            $payment->forceFill(['admin_note' => 'PKPay '.$source.' did not match amount / currency / order id.'])->save();
+            $line = 'PKPay '.$source.' did not match amount / currency / order id.';
+            if (! str_contains((string) $payment->admin_note, $line)) {
+                $payment->forceFill(['admin_note' => trim(($payment->admin_note ? $payment->admin_note."
+" : '').$line)])->save();
+            }
 
             return $payment;
         }
@@ -190,15 +194,22 @@ class PaymentService
                 return $fresh;
             }
 
+            $meta = [...($fresh->meta ?? []), ...($payment->meta ?? [])];
+            // Activated before (paid → changed by an admin → paid again)? Never extend the plan twice.
+            $alreadyActivated = ! empty($fresh->meta['plan_activated_at']);
+            $meta['plan_activated_at'] = $fresh->meta['plan_activated_at'] ?? now()->toIso8601String();
+
             $fresh->forceFill([
                 'status' => Payment::PAID,
                 'paid_at' => $paidAt ?? now(),
-                'reviewed_by' => $reviewer?->id,
-                'meta' => $payment->meta ?? $fresh->meta,
+                'reviewed_by' => $reviewer?->id ?? $fresh->reviewed_by,
+                'meta' => $meta,
                 'gateway_transaction_id' => $payment->gateway_transaction_id ?? $fresh->gateway_transaction_id,
             ])->save();
 
-            $this->activatePlan($fresh);
+            if (! $alreadyActivated) {
+                $this->activatePlan($fresh);
+            }
 
             return $fresh;
         });
@@ -212,6 +223,67 @@ class PaymentService
 
         $payment->forceFill(['status' => Payment::REJECTED, 'reviewed_by' => $reviewer->id, 'admin_note' => $note])->save();
         $this->logger->log('billing.payment_rejected', "Rejected payment {$payment->reference}", $payment);
+    }
+
+    public const ADMIN_STATUSES = [Payment::PAID, Payment::PENDING, Payment::EXPIRED, Payment::FAILED, Payment::CANCELLED, Payment::REJECTED];
+
+    /**
+     * Super Admin override: set any status by hand (e.g. an expired PKPay payment
+     * that was actually received). Marking it paid can activate the plan; the
+     * plan is activated at most once per payment. Moving away from "paid" never
+     * removes the customer's plan automatically.
+     *
+     * @return bool whether the plan was activated by this change
+     */
+    public function changeStatus(Payment $payment, string $status, User $admin, ?string $note = null, bool $activatePlan = true): bool
+    {
+        if (! in_array($status, self::ADMIN_STATUSES, true)) {
+            throw new PaymentGatewayException('Unknown payment status.');
+        }
+
+        return DB::transaction(function () use ($payment, $status, $admin, $note, $activatePlan) {
+            $fresh = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
+            $from = $fresh->status;
+
+            if ($from === $status) {
+                return false;
+            }
+
+            $line = now()->format('Y-m-d H:i').' · '.$admin->name.': '.$from.' → '.$status.($note ? ' — '.$note : '');
+            $meta = $fresh->meta ?? [];
+
+            // A paid payment always had its plan activated (markPaid) — remember that before leaving "paid".
+            if ($from === Payment::PAID && empty($meta['plan_activated_at'])) {
+                $meta['plan_activated_at'] = ($fresh->paid_at ?? now())->toIso8601String();
+            }
+
+            $alreadyActivated = ! empty($meta['plan_activated_at']);
+            $activate = $status === Payment::PAID && $activatePlan && ! $alreadyActivated;
+
+            if ($activate) {
+                $meta['plan_activated_at'] = now()->toIso8601String();
+            }
+
+            $fresh->forceFill([
+                'status' => $status,
+                'paid_at' => $status === Payment::PAID ? ($fresh->paid_at ?? now()) : null,
+                'reviewed_by' => $admin->id,
+                'admin_note' => Str::limit(trim(($fresh->admin_note ? $fresh->admin_note."\n" : '').$line), 2000, ''),
+                'meta' => $meta,
+            ])->save();
+
+            if ($activate) {
+                $this->activatePlan($fresh);
+            }
+
+            $this->logger->log('billing.payment_status_changed', "Payment {$fresh->reference}: {$from} → {$status}".($activate ? ' (plan activated)' : ''), $fresh, [
+                'from' => $from, 'to' => $status, 'note' => $note, 'plan_activated' => $activate,
+            ]);
+
+            $payment->setRawAttributes($fresh->getAttributes(), true);
+
+            return $activate;
+        });
     }
 
     /**

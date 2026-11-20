@@ -61,6 +61,7 @@ Artisan::command('payments:sync', function (App\Services\Payments\PaymentService
     $pending = App\Models\Payment::where('gateway', App\Models\Payment::GATEWAY_PKPAY)
         ->where('status', App\Models\Payment::PENDING)
         ->whereNotNull('gateway_payment_id')
+        ->whereNull('reviewed_by') // set back to pending by the Super Admin → leave it alone
         ->where('created_at', '>=', now()->subDay())
         ->limit(100)->get();
 
@@ -75,6 +76,7 @@ Artisan::command('payments:sync', function (App\Services\Payments\PaymentService
     // Older than a day and still pending → expired (Raast QR lives 5 minutes).
     $expired = App\Models\Payment::where('gateway', App\Models\Payment::GATEWAY_PKPAY)
         ->where('status', App\Models\Payment::PENDING)
+        ->whereNull('reviewed_by')
         ->where('created_at', '<', now()->subDay())
         ->update(['status' => App\Models\Payment::EXPIRED]);
 

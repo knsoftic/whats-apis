@@ -118,3 +118,10 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - The contact form saves to **Contact Messages** (honeypot, rate limit, optional e-mail alert, unread badge in the sidebar).
 - Fixes during work: dynamic Tailwind grid classes changed to fixed class names; Laravel reports fake `.mp4` uploads as `application/mp4` (Symfony map), so that MIME type is now accepted too.
 - **Result:** ✅ 238 tests pass (1045 assertions). Checked in the browser: desktop, mobile, dark mode, editor save, contact form → inbox.
+
+### 2026-11-20 · Payments — Super Admin status change
+- Request: on /payments, a button so the Super Admin (only) can change the status of an expired payment by hand.
+- Added a **Change status** popup (any status, optional note, "activate plan" box), `PaymentService::changeStatus()`, route `payments.status` with a Super Admin role check, a history note and an activity log entry.
+- Safety: a plan is never activated twice for one payment (also covers a later PKPay "paid"); pending payments set by the admin are not auto-expired; the PKPay mismatch note no longer overwrites the history.
+- Fix during work: CSS had to be rebuilt for the new popup width class.
+- **Result:** ✅ 245 tests pass (1082 assertions). Checked in the browser (expired → paid → plan activated). Local test data removed.

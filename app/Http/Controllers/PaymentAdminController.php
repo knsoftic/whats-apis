@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Support\Permissions as P;
 use App\Services\Payments\PaymentGatewayException;
 use App\Services\Payments\PaymentService;
 use Illuminate\Http\RedirectResponse;
@@ -71,5 +72,36 @@ class PaymentAdminController extends Controller
         }
 
         return back()->with('success', "PKPay status: {$payment->status}.");
+    }
+
+    /** Super Admin only: set the status by hand (e.g. an expired payment that was actually received). */
+    public function changeStatus(Request $request, Payment $payment): RedirectResponse
+    {
+        abort_unless($request->user()->hasRole(P::ROLE_SUPER_ADMIN), 403, 'Only the Super Admin can change a payment status.');
+
+        $data = $request->validate([
+            'status' => ['required', 'in:'.implode(',', PaymentService::ADMIN_STATUSES)],
+            'note' => ['nullable', 'string', 'max:300'],
+            'activate_plan' => ['nullable', 'boolean'],
+        ]);
+
+        if ($data['status'] === $payment->status) {
+            return back()->with('info', "Payment {$payment->reference} is already {$payment->status}.");
+        }
+
+        $from = $payment->status;
+        $activated = $this->payments->changeStatus($payment, $data['status'], $request->user(), $data['note'] ?? null, $request->boolean('activate_plan'));
+
+        $message = "Payment {$payment->reference}: {$from} → {$data['status']}.";
+
+        if ($activated) {
+            $message .= " Plan {$payment->plan_name} activated for ".($payment->user?->email ?? 'the customer').'.';
+        } elseif ($data['status'] === Payment::PAID && $request->boolean('activate_plan')) {
+            $message .= ' The plan was already activated for this payment before, so it was not extended again.';
+        } elseif ($from === Payment::PAID) {
+            $message .= " The customer's plan was not changed — edit it on the Users page if needed.";
+        }
+
+        return back()->with('success', $message);
     }
 }

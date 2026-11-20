@@ -102,6 +102,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('payments/{payment}/approve', [PaymentAdminController::class, 'approve'])->name('payments.approve');
         Route::post('payments/{payment}/reject', [PaymentAdminController::class, 'reject'])->name('payments.reject');
         Route::post('payments/{payment}/sync', [PaymentAdminController::class, 'sync'])->middleware('throttle:20,1')->name('payments.sync');
+        Route::post('payments/{payment}/status', [PaymentAdminController::class, 'changeStatus'])->name('payments.status'); // Super Admin only (checked in the controller)
     });
 
     // ---- Billing (customers buy / upgrade their plan) ---------------------------

@@ -8,8 +8,8 @@
 |---|---|
 | **Project folder** | `C:\xampp\htdocs\whts api mi` |
 | **Log started** | 2026-11-19 10:41 |
-| **Last updated** | 2026-11-20 (Phase 11 — landing page) |
-| **Overall status** | ✅ **11 phases done** · **238 automated tests passing** · live checks with real Meta / PKPay credentials still pending (need your accounts) |
+| **Last updated** | 2026-11-20 (Payments: Super Admin status change) |
+| **Overall status** | ✅ **11 phases done** · **245 automated tests passing** · live checks with real Meta / PKPay credentials still pending (need your accounts) |
 
 ---
 
@@ -39,7 +39,7 @@
 | 7 | Multiple accounts, security, testing & deployment | ✅ Done | 11 / 11 | [phase-7-security-testing-deploy.md](phases/phase-7-security-testing-deploy.md) |
 | 8 | **WhatsApp Embedded Signup (Tech Provider)** + manual entry | ✅ Code + tests · ⏳ live | 8 / 8 | [phase-8-embedded-signup.md](phases/phase-8-embedded-signup.md) |
 | 9 | **Registration, Plans & Bot Flows** | ✅ Code + tests (206) · ⏳ live bot test | 3 / 3 | [phase-9-registration-plans-bots.md](phases/phase-9-registration-plans-bots.md) |
-| 10 | **Settings center + PKPay self-purchase** | ✅ Code + tests (223) · ⏳ live payment | 2 / 2 | [phase-10-settings-payments.md](phases/phase-10-settings-payments.md) |
+| 10 | **Settings center + PKPay self-purchase** (+ Super Admin payment status change) | ✅ Code + tests (245) · ⏳ live payment | 2 / 2 | [phase-10-settings-payments.md](phases/phase-10-settings-payments.md) |
 | 11 | **Public landing page (fully editable) + contact inbox** | ✅ Code + tests (238) · browser-checked | 3 / 3 | [phase-11-landing-page.md](phases/phase-11-landing-page.md) |
 
 ---
@@ -49,7 +49,7 @@
 | Report | What it contains |
 |---|---|
 | [STATUS.md](STATUS.md) | **क्या काम कर रहा है / क्या नहीं** — working features, limitations, what still needs real Meta credentials |
-| [TESTING.md](TESTING.md) | Every test file, results (238 pass), run history, manual/live checklist |
+| [TESTING.md](TESTING.md) | Every test file, results (245 pass), run history, manual/live checklist |
 | [WORK-LOG.md](WORK-LOG.md) | Time-stamped log of all work, problems and fixes |
 | [ENVIRONMENT-DECISIONS.md](ENVIRONMENT-DECISIONS.md) | Local environment, 16 technical decisions, deviations from the spec and why |
 | [REMAINING.md](REMAINING.md) | **क्या बाकी है** — the steps only you can do to go live, plus optional future ideas |

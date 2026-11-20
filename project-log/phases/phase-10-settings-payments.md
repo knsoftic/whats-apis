@@ -34,3 +34,14 @@
 2. Ask the PKPay admin to put the **server IP** on the pay-in allowlist.
 3. Plans you sell through PKPay must be priced in **PKR** (edit plan currency).
 4. Settings → Payments: tick Enable PKPay + Self-purchase.
+
+## Update 2026-11-20 — Super Admin can change a payment status
+- **Payments** page: a **Change status** button on every payment, shown only to the **Super Admin**. It is highlighted for expired, failed and cancelled payments. The server checks the Super Admin role too, so even an Admin who was given `plans.manage` gets 403.
+- The popup shows customer, plan, amount and current status. Pick the new status (paid, pending, expired, failed, cancelled, rejected) and add an optional note.
+- Marking a payment **paid** can activate the customer's plan ("Activate the customer's plan" box, ticked by default). Monthly plans get +1 month, yearly +1 year, and renewals extend the current expiry.
+- A plan is activated **at most once per payment**: paid → expired → paid, or a later PKPay "paid", never adds time twice (`meta.plan_activated_at`).
+- Moving a payment away from paid does **not** remove the customer's plan; the message says to edit it on Users if needed.
+- Every change is added to the payment's history note (date · admin: from → to — note) and to Activity Logs (`billing.payment_status_changed`).
+- A payment the Super Admin sets back to **pending** is skipped by the `payments:sync` auto-expire and PKPay re-check.
+- **Check** (ask PKPay) now also shows for expired or failed PKPay payments, so a late real payment can be confirmed.
+- Tests: `PaymentStatusChangeTest` (7) → **245 passed (1082 assertions)**. Browser-checked: expired → paid with a note → plan activated.
