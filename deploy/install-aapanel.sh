@@ -71,7 +71,9 @@ PHP_VER=$("$PHP" -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
 "$PHP" -r 'exit(version_compare(PHP_VERSION,"8.2.0",">=")?0:1);' || die "PHP 8.2+ required (found $PHP_VER)."
 ok "PHP $PHP_VER"
 for ext in pdo_mysql mbstring openssl curl fileinfo tokenizer xml ctype json bcmath; do
-  "$PHP" -m | grep -qi "^${ext}$" || die "PHP extension '$ext' missing → aaPanel → App Store → PHP-${PHP_VER} → Setting → Install extensions → $ext"
+  # Capture first: "php -m | grep -q" can hit SIGPIPE and fail randomly under pipefail.
+  PHP_MODULES="${PHP_MODULES:-$("$PHP" -m)}"
+  grep -qix "$ext" <<< "$PHP_MODULES" || die "PHP extension '$ext' missing → aaPanel → App Store → PHP-${PHP_VER} → Setting → Install extensions → $ext"
 done
 ok "PHP extensions OK"
 command -v git >/dev/null || { apt-get update -y >/dev/null 2>&1 || true; apt-get install -y git >/dev/null 2>&1 || yum install -y git >/dev/null 2>&1; }
@@ -162,7 +164,8 @@ if [[ ! -f .env ]]; then
   ask ADMIN_EMAIL "Super Admin email (first login)" "admin@${DOMAIN}"
   [[ -n "$DB_PASS" ]] || die "Database password is required."
 
-  if redis-cli ping 2>/dev/null | grep -q PONG && "$PHP" -m | grep -qi '^redis$'; then QUEUE=redis; else QUEUE=database; fi
+  REDIS_PING="$(redis-cli ping 2>/dev/null || true)"
+  if [[ "$REDIS_PING" == *PONG* ]] && grep -qix redis <<< "$("$PHP" -m)"; then QUEUE=redis; else QUEUE=database; fi
 
   set_env APP_ENV production
   set_env APP_DEBUG false
@@ -338,7 +341,8 @@ step "12/12  Health check"
 sleep 2
 CODE=$(curl -sk -o /dev/null -w '%{http_code}' "https://${DOMAIN}/up" || echo 000)
 if [[ "$CODE" == "200" ]]; then ok "https://${DOMAIN}/up → 200"; else warn "https://${DOMAIN}/up → $CODE (check SSL / DNS / Nginx; logs: $APP_DIR/storage/logs)"; fi
-(ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -q ":${REVERB_PORT_LOCAL} " && ok "Reverb listening on 127.0.0.1:${REVERB_PORT_LOCAL}" || warn "Reverb is not listening yet — check Supervisor."
+LISTENING="$( (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) || true)"
+if grep -q ":${REVERB_PORT_LOCAL} " <<< "$LISTENING"; then ok "Reverb listening on 127.0.0.1:${REVERB_PORT_LOCAL}"; else warn "Reverb is not listening yet — check Supervisor."; fi
 
 echo -e "\n${G}=====================================================================${N}"
 if [[ "$FIRST_INSTALL" == "1" ]]; then
