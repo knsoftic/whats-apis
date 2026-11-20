@@ -74,3 +74,4 @@ Tests: 158 passed (613 assertions)   Duration: 19.4 s   Failed: 0
 | M9 | Send image / document both ways | ⏳ | Needs M6 + M7 |
 | M10 | Sync real templates and send one | ⏳ | Needs approved templates in your WABA |
 | M11 | Agent only sees assigned numbers (UI) | ✅ automated / ⏳ manual | Covered by `AccountIsolationTest` |
+| M12 | Landing page: Login/Register header, editor save → page updates, contact form → inbox | ✅ | In-app browser, 2026-11-20 (desktop, 375 px mobile, dark) |

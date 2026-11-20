@@ -111,3 +111,10 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Self-purchase: Billing page → PKPay checkout → verified callback → plan activation (idempotent, renewal-aware); manual payments approved on the Payments page; `payments:sync` scheduler.
 - Fixes during work: test helper named `callback()` clashed with PHPUnit's final method; `@js` inside a Blade component attribute is not compiled (colour swatch ticks).
 - **Result:** ✅ 223 tests pass (934 assertions). Settings pages checked in browser.
+
+### 2026-11-20 · Phase 11 — Landing page + contact inbox
+- `/` is now a public landing page (was a redirect to `/dashboard`). The header always shows Login and Register; logged-in users see Dashboard instead.
+- Every section (hero image/video/YouTube, numbers, features, steps, video, pricing from plans, testimonials, FAQ, contact, CTA, footer, SEO) is editable on **Settings → Landing page**, with on/off switches, uploads and a media library. The server cleans all input.
+- The contact form saves to **Contact Messages** (honeypot, rate limit, optional e-mail alert, unread badge in the sidebar).
+- Fixes during work: dynamic Tailwind grid classes changed to fixed class names; Laravel reports fake `.mp4` uploads as `application/mp4` (Symfony map), so that MIME type is now accepted too.
+- **Result:** ✅ 238 tests pass (1045 assertions). Checked in the browser: desktop, mobile, dark mode, editor save, contact form → inbox.

@@ -70,6 +70,6 @@ class PageSmokeTest extends TestCase
     {
         $this->get('/login')->assertOk()->assertSee('KN Softic');
         $this->get('/forgot-password')->assertOk();
-        $this->get('/')->assertRedirect('/dashboard');
+        $this->get('/')->assertOk()->assertSee('Login')->assertSee('Register');
     }
 }

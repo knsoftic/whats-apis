@@ -16,7 +16,9 @@
         ['label' => 'Plans', 'route' => 'plans.index', 'active' => 'plans.*', 'icon' => 'chart', 'can' => P::PLANS_MANAGE],
         ['label' => 'Payments', 'route' => 'payments.index', 'active' => 'payments.*', 'icon' => 'inbox', 'can' => P::PLANS_MANAGE],
         ['label' => 'Activity Logs', 'route' => 'activity-logs.index', 'active' => 'activity-logs.*', 'icon' => 'activity', 'can' => P::ACTIVITY_VIEW],
-        ['label' => 'Settings', 'route' => 'settings.index', 'active' => 'settings.*', 'icon' => 'key', 'can' => P::SETTINGS_MANAGE],
+        ['label' => 'Landing Page', 'route' => 'settings.landing', 'active' => 'settings.landing*', 'icon' => 'photo', 'can' => P::SETTINGS_MANAGE],
+        ['label' => 'Contact Messages', 'route' => 'contact-messages.index', 'active' => 'contact-messages.*', 'icon' => 'envelope', 'can' => P::SETTINGS_MANAGE, 'badge' => 'contact'],
+        ['label' => 'Settings', 'route' => 'settings.index', 'active' => 'settings.*', 'except' => 'settings.landing*', 'icon' => 'key', 'can' => P::SETTINGS_MANAGE],
     ];
     $isCustomer = auth()->user()->isPlanLimited();
     $visible = fn ($items) => array_filter($items, fn ($i) => Route::has($i['route'])
@@ -26,6 +28,7 @@
     $nav = $visible($nav);
     // Customers manage their own numbers from the main menu; the Administration block is for staff.
     $admin = $isCustomer ? [] : $visible($admin);
+    $badges = ['contact' => collect($admin)->contains('badge', 'contact') ? \App\Models\ContactMessage::unread()->count() : 0];
 @endphp
 
 <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-5 dark:border-slate-800">
@@ -61,7 +64,7 @@
             <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Administration</p>
             <div class="space-y-1">
                 @foreach ($admin as $item)
-                    @php $active = request()->routeIs($item['active']); @endphp
+                    @php $active = request()->routeIs($item['active']) && ! (isset($item['except']) && request()->routeIs($item['except'])); @endphp
                     <a href="{{ route($item['route']) }}" @class([
                         'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition',
                         'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' => $active,
@@ -69,6 +72,9 @@
                     ])>
                         <x-icon :name="$item['icon']" class="h-5 w-5 shrink-0" />
                         <span class="truncate">{{ $item['label'] }}</span>
+                        @if (! empty($badges[$item['badge'] ?? '']))
+                            <span class="ml-auto rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">{{ $badges[$item['badge']] > 99 ? '99+' : $badges[$item['badge']] }}</span>
+                        @endif
                     </a>
                 @endforeach
             </div>
