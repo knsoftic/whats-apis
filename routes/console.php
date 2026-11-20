@@ -26,6 +26,24 @@ Artisan::command('whatsapp:check-accounts {--id= : Only this account id}', funct
     $this->info("Checked {$accounts->count()} account(s).");
 })->purpose('Re-validate WhatsApp Cloud API credentials of all active accounts');
 
+Artisan::command('admin:reset-password {email}', function (string $email) {
+    $user = \App\Models\User::where('email', strtolower(trim($email)))->first();
+
+    if (! $user) {
+        $this->error("No user with email {$email}.");
+
+        return 1;
+    }
+
+    $password = \Illuminate\Support\Str::password(16, symbols: false);
+    $user->forceFill(['password' => $password, 'is_active' => true])->save();
+
+    $this->info("New password for {$user->email}: {$password}");
+    $this->line('Log in and change it on the Profile page.');
+
+    return 0;
+})->purpose('Set a new random password for a user (e.g. lost Super Admin password)');
+
 Artisan::command('whatsapp:retry-webhooks {--hours=24}', function () {
     $events = WebhookEvent::where('status', WebhookEvent::FAILED)
         ->where('created_at', '>=', now()->subHours((int) $this->option('hours')))

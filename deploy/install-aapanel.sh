@@ -280,8 +280,9 @@ step "11/12  Supervisor (queue worker + Reverb) and cron"
 find_sup_conf() {
   SUP_CONF=""
   for c in /www/server/panel/plugin/supervisor/supervisord.conf /etc/supervisor/supervisord.conf /etc/supervisord.conf; do
-    [[ -f "$c" ]] && { SUP_CONF="$c"; return; }
+    if [[ -f "$c" ]]; then SUP_CONF="$c"; return 0; fi
   done
+  return 0   # "not found" is handled by the caller, not an error under set -e
 }
 find_sup_conf
 if [[ -z "$SUP_CONF" ]] || ! command -v supervisorctl >/dev/null; then
