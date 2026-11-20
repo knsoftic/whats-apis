@@ -6,7 +6,8 @@
 #    bash <(curl -fsSL https://raw.githubusercontent.com/knsoftic/whats-apis/main/deploy/install-aapanel.sh)
 #
 #  Optional settings (put them before "bash"):
-#    DOMAIN=whats-apis.com  APP_DIR=/www/wwwroot/whats-apis.com  PHP=/www/server/php/83/bin/php
+#    DOMAIN=whats-apis.com  APP_DIR=/www/wwwroot/whats-apis.com  PHP=/www/server/php/84/bin/php
+#    (PHP is auto-detected: newest of 8.5 / 8.4 / 8.3 / 8.2 installed by aaPanel)
 #    DB_NAME=kn_whatsapp DB_USER=kn_whatsapp DB_PASS='...'  ADMIN_EMAIL=you@example.com
 #    REPO=https://github.com/knsoftic/whats-apis.git  BRANCH=main  GH_TOKEN=... (private repo only)
 #
@@ -20,7 +21,13 @@ set -Eeuo pipefail
 
 DOMAIN="${DOMAIN:-whats-apis.com}"
 APP_DIR="${APP_DIR:-/www/wwwroot/${DOMAIN}}"
-PHP="${PHP:-/www/server/php/83/bin/php}"
+# Use the newest aaPanel PHP (8.5 → 8.2) unless PHP=/path/to/php is given.
+if [[ -z "${PHP:-}" ]]; then
+  for v in 85 84 83 82; do
+    if [[ -x "/www/server/php/${v}/bin/php" ]]; then PHP="/www/server/php/${v}/bin/php"; break; fi
+  done
+  PHP="${PHP:-/www/server/php/84/bin/php}"
+fi
 REPO="${REPO:-https://github.com/knsoftic/whats-apis.git}"
 BRANCH="${BRANCH:-main}"
 WEB_USER="${WEB_USER:-www}"
@@ -59,7 +66,7 @@ artisan() { "$PHP" "${APP_DIR}/artisan" "$@"; }
 # -----------------------------------------------------------------------------
 step "1/12  Checking server"
 [[ $EUID -eq 0 ]] || die "Run as root (sudo -i)."
-[[ -x "$PHP" ]] || die "PHP not found at $PHP. Install PHP 8.3 from aaPanel App Store (or set PHP=/path/to/php)."
+[[ -x "$PHP" ]] || die "PHP not found at $PHP. Install PHP 8.4 (or 8.3) from aaPanel App Store (or set PHP=/path/to/php)."
 PHP_VER=$("$PHP" -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
 "$PHP" -r 'exit(version_compare(PHP_VERSION,"8.2.0",">=")?0:1);' || die "PHP 8.2+ required (found $PHP_VER)."
 ok "PHP $PHP_VER"
