@@ -76,3 +76,4 @@ Tests: 158 passed (613 assertions)   Duration: 19.4 s   Failed: 0
 | M11 | Agent only sees assigned numbers (UI) | ✅ automated / ⏳ manual | Covered by `AccountIsolationTest` |
 | M12 | Landing page: Login/Register header, editor save → page updates, contact form → inbox | ✅ | In-app browser, 2026-11-20 (desktop, 375 px mobile, dark) |
 | M13 | Payments: Super Admin changes an expired payment to paid → plan activated, history note shown | ✅ | In-app browser, 2026-11-20 |
+| M14 | Bot builder: drag nodes from palette, wire menu options, move node, save, delete a wire → red node + error, re-wire, dark mode | ✅ | In-app browser, 2026-11-20 (real mouse) |

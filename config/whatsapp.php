@@ -52,6 +52,8 @@ return [
         'handoff_hours' => (int) env('WHATSAPP_BOT_HANDOFF_HOURS', 24),
         // Safety net: a bot can send at most this many messages per incoming message.
         'max_steps' => 8,
+        // Visual builder: most nodes in one flow.
+        'max_nodes' => 40,
     ],
 
     // Outgoing messages per minute per user (dashboard sending).

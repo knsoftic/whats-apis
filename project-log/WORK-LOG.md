@@ -125,3 +125,10 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Safety: a plan is never activated twice for one payment (also covers a later PKPay "paid"); pending payments set by the admin are not auto-expired; the PKPay mismatch note no longer overwrites the history.
 - Fix during work: CSS had to be rebuilt for the new popup width class.
 - **Result:** ✅ 245 tests pass (1082 assertions). Checked in the browser (expired → paid → plan activated). Local test data removed.
+
+### 2026-11-20 · Phase 12 — Visual bot flow builder (n8n-style)
+- Request: Bot Flows like n8n — drag-and-drop nodes connected on a canvas.
+- Built a canvas builder (palette drag & drop, wires from output dots, one output per menu option, pan/zoom/fit, settings panel, red nodes on errors), a graph data model (`bot_flows.graph`, `BotGraph`), and an engine that follows the connections and waits at menus.
+- Older step flows keep working and open in the canvas.
+- Issues found while browser-testing and fixed: the settings panel covered the nodes (now a side column on wide screens, and the selected node is panned into view); stale connection errors are cleared after re-wiring; palette buttons now have labels for screen readers.
+- **Result:** ✅ 252 tests pass (1139 assertions). Browser-tested with real mouse drag, connect, move, save, delete-connection error and dark mode. Local test data removed.

@@ -8,6 +8,7 @@ use App\Models\Conversation;
 use App\Models\WhatsAppAccount;
 use App\Services\ActivityLogger;
 use App\Services\PlanGate;
+use App\Support\BotGraph;
 use App\Support\CurrentAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -62,11 +63,11 @@ class BotFlowController extends Controller
         return view('bots.form', $this->formData(new BotFlow([
             'whatsapp_account_id' => $account->id, 'trigger_type' => 'keyword', 'match_type' => 'contains',
             'is_active' => true, 'priority' => 0, 'cooldown_minutes' => 0,
-            'steps' => [['type' => 'text', 'text' => '']],
+            'steps' => [], 'graph' => BotGraph::starter(),
         ]), $accounts));
     }
 
-    public function store(Request $request, CurrentAccount $current): RedirectResponse
+    public function store(Request $request, CurrentAccount $current): RedirectResponse|JsonResponse
     {
         $account = $current->accounts()->firstWhere('id', $request->integer('whatsapp_account_id'));
         abort_unless($account, 404);
@@ -75,6 +76,10 @@ class BotFlowController extends Controller
 
         $flow = BotFlow::create($this->validated($request, $account));
         $this->logger->log('bot.created', "Created bot flow {$flow->name}", $flow, accountId: $account->id);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => "Bot flow “{$flow->name}” saved.", 'id' => $flow->id, 'redirect' => route('bots.edit', $flow)], 201);
+        }
 
         return redirect()->route('bots.index', ['account_id' => $account->id])->with('success', "Bot flow “{$flow->name}” saved.");
     }
@@ -86,12 +91,16 @@ class BotFlowController extends Controller
         return view('bots.form', $this->formData($flow, $current->accounts()));
     }
 
-    public function update(Request $request, BotFlow $flow): RedirectResponse
+    public function update(Request $request, BotFlow $flow): RedirectResponse|JsonResponse
     {
         $this->authorizeFlow($flow);
 
         $flow->update($this->validated($request, $flow->account, $flow));
         $this->logger->log('bot.updated', "Updated bot flow {$flow->name}", $flow, accountId: $flow->whatsapp_account_id);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Saved.', 'id' => $flow->id]);
+        }
 
         return redirect()->route('bots.index', ['account_id' => $flow->whatsapp_account_id])->with('success', "Bot flow “{$flow->name}” updated.");
     }
@@ -149,7 +158,14 @@ class BotFlowController extends Controller
             ->groupBy('whatsapp_account_id')
             ->map(fn ($group) => $group->map(fn ($f) => ['id' => $f->id, 'name' => $f->name, 'trigger' => $f->trigger_type])->values());
 
-        return ['flow' => $flow, 'accounts' => $accounts, 'targets' => $targets];
+        $old = old('graph') ? json_decode((string) old('graph'), true) : null;
+
+        return [
+            'flow' => $flow,
+            'accounts' => $accounts,
+            'targets' => $targets,
+            'graph' => is_array($old) ? $old : ($flow->exists || $flow->graph ? $flow->flowGraph() : BotGraph::starter()),
+        ];
     }
 
     /**
@@ -167,10 +183,17 @@ class BotFlowController extends Controller
             'priority' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'cooldown_minutes' => ['nullable', 'integer', 'min:0', 'max:10080'],
             'is_active' => ['boolean'],
-            'steps' => ['required', 'json'],
+            'graph' => ['required_without:steps', 'nullable', 'json', 'max:200000'],
+            'steps' => ['required_without:graph', 'nullable', 'json'],
         ], ['keywords.required_if' => 'Add at least one keyword for a keyword flow.']);
 
-        $steps = $this->validateSteps(json_decode($data['steps'], true), $account, $flow);
+        if (filled($data['graph'] ?? null)) {
+            $graph = BotGraph::validate(json_decode($data['graph'], true), $account, $flow);
+            $steps = [];
+        } else {
+            $graph = null;
+            $steps = $this->validateSteps(json_decode($data['steps'], true), $account, $flow);
+        }
 
         return [
             'whatsapp_account_id' => $account->id,
@@ -182,6 +205,7 @@ class BotFlowController extends Controller
             'cooldown_minutes' => (int) ($data['cooldown_minutes'] ?? 0),
             'is_active' => $data['is_active'],
             'steps' => $steps,
+            'graph' => $graph,
         ];
     }
 

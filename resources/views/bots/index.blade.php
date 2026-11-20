@@ -33,7 +33,7 @@
             <x-card :padding="false">
                 <div class="overflow-x-auto">
                     <table class="table-base">
-                        <thead><tr><th>Flow</th><th>Trigger</th><th>Steps</th><th>Runs</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
+                        <thead><tr><th>Flow</th><th>Trigger</th><th>Nodes</th><th>Runs</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
                         <tbody>
                         @foreach ($flows as $flow)
                             <tr>
@@ -47,7 +47,7 @@
                                         <p class="mt-1 max-w-xs truncate text-slate-500">{{ \App\Models\BotFlow::MATCHES[$flow->match_type] ?? '' }}: {{ $flow->keywords }}</p>
                                     @endif
                                 </td>
-                                <td class="text-xs text-slate-600 dark:text-slate-400">{{ collect($flow->steps)->pluck('type')->map(fn ($t) => ucfirst($t))->join(' → ') }}</td>
+                                <td class="text-xs text-slate-600 dark:text-slate-400">{{ \App\Support\BotGraph::summary($flow->flowGraph()) }}</td>
                                 <td class="whitespace-nowrap text-xs">{{ number_format($flow->runs_count) }}<span class="block text-slate-400">{{ $flow->last_run_at?->diffForHumans() ?? 'never' }}</span></td>
                                 <td>
                                     <form method="POST" action="{{ route('bots.toggle', $flow) }}">
