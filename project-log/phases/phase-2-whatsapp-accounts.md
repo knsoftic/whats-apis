@@ -55,3 +55,9 @@ Admins can add, edit, remove, enable/disable multiple official WhatsApp Cloud AP
 |---|---|
 | Spec says "PHP 8.3+"; local is 8.2 | Code written for both; see ENVIRONMENT-DECISIONS D1 |
 | Pasted tokens often contain spaces/newlines or "Bearer " | Form request strips them before validation |
+
+## Update 2026-11-20 — Callback URL on the manual “Add account” form
+- Problem (reported on whats-apis.com): the manual form showed the verify token but **not the Callback URL**. The URL contains the account's id (UUID), which was only created when the account was saved.
+- Fix: the form now creates the id up front and shows a **“4. Webhook — paste into Meta”** card. It has the Callback URL and the Verify token, each with a Copy button, plus 3 steps: Save → Meta “Verify and save” → subscribe to `messages`.
+- Saving keeps exactly that id, so the URL copied into Meta keeps working. The id must be a unique UUID and cannot be changed when editing. The edit form shows the same Callback URL.
+- Test: `WhatsAppAccountTest::test_callback_url_is_shown_before_saving_and_kept_after_saving` (the Meta GET verify works on the pre-shown URL). Checked in the browser: card, Generate token, Copy. **262 passed.**

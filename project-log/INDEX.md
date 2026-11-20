@@ -8,8 +8,8 @@
 |---|---|
 | **Project folder** | `C:\xampp\htdocs\whts api mi` |
 | **Log started** | 2026-11-19 10:41 |
-| **Last updated** | 2026-11-20 (Phase 12 — Question + Condition nodes) |
-| **Overall status** | ✅ **12 phases done** · **261 automated tests passing** · live checks with real Meta / PKPay credentials still pending (need your accounts) |
+| **Last updated** | 2026-11-20 (Callback URL on manual add-account form) |
+| **Overall status** | ✅ **12 phases done** · **262 automated tests passing** · live checks with real Meta / PKPay credentials still pending (need your accounts) |
 
 ---
 
@@ -50,7 +50,7 @@
 | Report | What it contains |
 |---|---|
 | [STATUS.md](STATUS.md) | **क्या काम कर रहा है / क्या नहीं** — working features, limitations, what still needs real Meta credentials |
-| [TESTING.md](TESTING.md) | Every test file, results (261 pass), run history, manual/live checklist |
+| [TESTING.md](TESTING.md) | Every test file, results (262 pass), run history, manual/live checklist |
 | [WORK-LOG.md](WORK-LOG.md) | Time-stamped log of all work, problems and fixes |
 | [ENVIRONMENT-DECISIONS.md](ENVIRONMENT-DECISIONS.md) | Local environment, 16 technical decisions, deviations from the spec and why |
 | [REMAINING.md](REMAINING.md) | **क्या बाकी है** — the steps only you can do to go live, plus optional future ideas |

@@ -139,3 +139,9 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - `{{variables}}` work in messages. Bot memory is stored in `conversations.bot_state`; an agent reply, a handoff, a menu tap or the timeout clears the wait.
 - Browser-tested with a real mouse (built and saved Trigger → Message → Question → Condition → 3 paths). The saved JSON is now a test fixture and runs end to end.
 - **Result:** ✅ 261 tests pass (1219 assertions). Local test flow removed.
+
+### 2026-11-20 · Fix: Callback URL missing on manual add-account form
+- User report: https://whats-apis.com/whatsapp-accounts/create (manual) did not show the Callback URL.
+- Cause: the URL uses the account UUID, which only existed after saving.
+- Fix: the UUID is generated when the form opens and kept on save; a new Webhook card shows the Callback URL and Verify token with Copy buttons and the setup steps.
+- **Result:** ✅ 262 tests pass. Checked in the browser.

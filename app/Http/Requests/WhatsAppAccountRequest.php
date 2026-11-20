@@ -53,6 +53,8 @@ class WhatsAppAccountRequest extends FormRequest
             'app_secret' => [$required, 'string', 'min:16', 'max:128', 'regex:/^[A-Za-z0-9]+$/'],
             'webhook_verify_token' => [$required, 'string', 'min:8', 'max:128', 'regex:/^[A-Za-z0-9_\-.~]+$/'],
             'graph_api_version' => ['required', 'regex:/^v\d{1,2}\.\d$/'],
+            // Webhook id shown on the "Add account" form so the Callback URL can be copied before saving.
+            'uuid' => $account ? ['prohibited'] : ['nullable', 'uuid', Rule::unique('whatsapp_accounts', 'uuid')],
             'is_active' => ['boolean'],
             // Only platform staff may choose an owner (customer whose plan limits apply).
             'owner_id' => $this->user()->isPlanLimited() ? ['prohibited'] : ['nullable', 'integer', 'exists:users,id'],

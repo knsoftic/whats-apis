@@ -34,6 +34,35 @@ class WhatsAppAccountTest extends TestCase
         $this->assertDatabaseHas('activity_logs', ['action' => 'account.created']);
     }
 
+    public function test_callback_url_is_shown_before_saving_and_kept_after_saving(): void
+    {
+        $admin = $this->admin();
+
+        // The "Add account" form already shows the Callback URL + a hidden id for it.
+        $html = $this->actingAs($admin)->get('/whatsapp-accounts/create')->assertOk()->assertSee('Callback URL')->getContent();
+        $this->assertSame(1, preg_match('~name="uuid" value="([0-9a-f-]{36})"~', $html, $m));
+        $uuid = $m[1];
+        $this->assertStringContainsString(route('webhooks.whatsapp.verify', ['account' => $uuid]), $html);
+
+        // Saving keeps exactly that id, so the URL pasted into Meta keeps working.
+        $payload = $this->accountPayload(['uuid' => $uuid]);
+        $this->fakeMetaValid($payload['waba_id'], $payload['phone_number_id']);
+        $this->actingAs($admin)->post('/whatsapp-accounts', $payload)->assertSessionHasNoErrors();
+
+        $account = WhatsAppAccount::firstOrFail();
+        $this->assertSame($uuid, $account->uuid);
+        $this->get("/api/webhooks/whatsapp/{$uuid}?hub_mode=subscribe&hub_verify_token=my-verify-token-123&hub_challenge=12345")
+            ->assertOk()->assertSee('12345');
+
+        // The id can't be reused, must be a UUID, and can't be changed on edit.
+        $this->actingAs($admin)->post('/whatsapp-accounts', $this->accountPayload(['uuid' => $uuid, 'phone_number_id' => '100000000000002']))->assertSessionHasErrors('uuid');
+        $this->actingAs($admin)->post('/whatsapp-accounts', $this->accountPayload(['uuid' => 'not-a-uuid', 'phone_number_id' => '100000000000003']))->assertSessionHasErrors('uuid');
+        $this->actingAs($admin)->put("/whatsapp-accounts/{$account->id}", $this->accountPayload(['uuid' => (string) \Illuminate\Support\Str::uuid()]))->assertSessionHasErrors('uuid');
+
+        // The edit form shows the same Callback URL.
+        $this->actingAs($admin)->get("/whatsapp-accounts/{$account->id}/edit")->assertSee(route('webhooks.whatsapp.verify', ['account' => $uuid]), false);
+    }
+
     public function test_account_is_saved_but_marked_failed_when_meta_rejects_credentials(): void
     {
         $this->fakeMetaInvalidToken();

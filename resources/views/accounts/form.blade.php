@@ -94,6 +94,51 @@
                     </div>
                 </x-card>
 
+                @php
+                    $webhookUuid = $editing ? $account->uuid : old('uuid', $suggestedUuid ?? null);
+                    $callbackUrl = $webhookUuid ? route('webhooks.whatsapp.verify', ['account' => $webhookUuid]) : null;
+                @endphp
+                @if ($callbackUrl)
+                    <x-card title="4. Webhook — paste into Meta" subtitle="developers.facebook.com → your app → WhatsApp → Configuration → Webhook → Edit.">
+                        @unless ($editing)
+                            <input type="hidden" name="uuid" value="{{ $webhookUuid }}">
+                        @endunless
+                        <div class="grid gap-5" x-data="{ copied: null, copy(text, key) { navigator.clipboard?.writeText(text).catch(() => {}); this.copied = key; setTimeout(() => this.copied = null, 1500); } }">
+                            <div>
+                                <label class="form-label" for="callback_url">Callback URL</label>
+                                <div class="flex gap-2">
+                                    <input id="callback_url" readonly value="{{ $callbackUrl }}" class="form-input font-mono text-xs" @focus="$el.select()">
+                                    <button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                                            @click="copy(@js($callbackUrl), 'url')"><x-icon name="copy" class="h-4 w-4" /><span x-text="copied === 'url' ? 'Copied!' : 'Copy'">Copy</span></button>
+                                </div>
+                                @unless (str_starts_with($callbackUrl, 'https://'))
+                                    <p class="form-error">Meta only accepts https:// callback URLs — this works on your live domain with SSL.</p>
+                                @endunless
+                            </div>
+                            <div>
+                                <label class="form-label">Verify token</label>
+                                @if ($editing)
+                                    <p class="text-xs text-slate-500">The token you saved before (view it on the account page), or the new one you enter above.</p>
+                                @else
+                                    <div class="flex gap-2">
+                                        <input readonly :value="verifyToken" class="form-input font-mono text-xs" @focus="$el.select()" aria-label="Verify token to paste into Meta">
+                                        <button type="button" class="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-300 px-3 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                                                @click="copy(verifyToken, 'token')"><x-icon name="copy" class="h-4 w-4" /><span x-text="copied === 'token' ? 'Copied!' : 'Copy'">Copy</span></button>
+                                    </div>
+                                    <p class="form-help">Same value as “Webhook verify token” above.</p>
+                                @endif
+                            </div>
+                            <ol class="list-decimal space-y-1 rounded-xl bg-slate-50 py-3 pl-8 pr-4 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
+                                @unless ($editing)
+                                    <li>First click <strong>Save &amp; validate</strong> below (the app must know the token before Meta checks it).</li>
+                                @endunless
+                                <li>In Meta paste the Callback URL and Verify token, then click <strong>Verify and save</strong>.</li>
+                                <li>Under Webhook fields, <strong>Subscribe</strong> to <code class="font-mono">messages</code>.</li>
+                            </ol>
+                        </div>
+                    </x-card>
+                @endif
+
                 @if (($owners ?? collect())->isNotEmpty())
                     <x-card title="Owner (customer)" subtitle="The customer whose plan limits apply to this number. Empty = platform-owned, no limits.">
                         <select name="owner_id" class="form-input">

@@ -62,6 +62,8 @@ class WhatsAppAccountController extends Controller
                 'is_active' => true,
             ]),
             'suggestedVerifyToken' => Str::random(40),
+            // Known before saving → the Callback URL can be copied into Meta right away.
+            'suggestedUuid' => (string) Str::uuid(),
         ]);
     }
 
@@ -72,9 +74,12 @@ class WhatsAppAccountController extends Controller
 
         $data = $request->validated();
         $ownerId = $data['owner_id'] ?? null;
-        unset($data['owner_id']);
+        $uuid = $data['uuid'] ?? null;
+        unset($data['owner_id'], $data['uuid']);
 
-        $account = WhatsAppAccount::create($data + ['created_by' => $user->id]);
+        $account = WhatsAppAccount::make($data + ['created_by' => $user->id]);
+        $account->uuid = $uuid ?: (string) Str::uuid(); // same id as the Callback URL shown on the form
+        $account->save();
         $this->assignOwner($account, $user->isPlanLimited() ? $user->id : $ownerId);
 
         $this->logger->log('account.created', "Added WhatsApp account {$account->name}", $account, [
