@@ -7,6 +7,44 @@
         @endif
     </x-page-header>
 
+    @if ($planUsage)
+        @php
+            $u = $planUsage;
+            $bar = fn ($used, $max) => $max ? min(100, (int) round($used / max(1, $max) * 100)) : 0;
+        @endphp
+        <x-card class="mb-6">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm text-slate-500">Your plan</p>
+                    <p class="text-xl font-semibold text-slate-900 dark:text-white">{{ $u['plan']?->name ?? 'No plan' }}
+                        @if (! $u['active'])<x-badge color="red" dot>{{ $u['plan'] ? 'Expired' : 'Inactive' }}</x-badge>@endif
+                    </p>
+                    @if ($u['expires_at'])
+                        <p class="text-xs text-slate-500">{{ $u['expires_at']->isPast() ? 'Expired' : 'Valid until' }} {{ $u['expires_at']->toFormattedDateString() }}</p>
+                    @endif
+                </div>
+                @if (! $u['active'])
+                    <p class="max-w-sm rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">Sending is paused. Contact the administrator to activate or renew your plan.</p>
+                @endif
+            </div>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ([
+                    ['Messages today', $u['messages_today'], $u['daily_limit']],
+                    ['WhatsApp numbers', $u['accounts'], $u['max_accounts']],
+                    ['Contacts', $u['contacts'], $u['max_contacts']],
+                    ['Bot flows', $u['bot_flows'], $u['bots_allowed'] ? $u['max_bot_flows'] : 0],
+                ] as [$label, $used, $max])
+                    <div>
+                        <div class="flex justify-between text-xs"><span class="text-slate-500">{{ $label }}</span><span class="font-medium">{{ number_format($used) }} / {{ $max === null ? '∞' : number_format($max) }}</span></div>
+                        <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                            <div class="h-full rounded-full {{ $max !== null && $used >= $max ? 'bg-rose-500' : 'bg-emerald-500' }}" style="width: {{ $max === null ? 4 : $bar($used, $max) }}%"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </x-card>
+    @endif
+
     {{-- Stat cards --}}
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <x-stat-card label="Connected WhatsApp numbers" :value="$stats['numbers_operational'].' / '.$stats['numbers_total']" icon="phone" color="emerald"

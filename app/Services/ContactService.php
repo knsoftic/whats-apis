@@ -72,7 +72,7 @@ class ContactService
      *
      * @return array{created:int, updated:int, skipped:int, errors: array<int, string>}
      */
-    public function import(WhatsAppAccount $account, UploadedFile $file): array
+    public function import(WhatsAppAccount $account, UploadedFile $file, ?int $maxNew = null): array
     {
         $result = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => []];
 
@@ -121,6 +121,14 @@ class ContactService
             if ($email !== '' && ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $email = '';
                 $this->addError($result, "Row {$line}: invalid email ignored.");
+            }
+
+            if ($maxNew !== null && $result['created'] >= $maxNew
+                && ! Contact::where('whatsapp_account_id', $account->id)->where('wa_id', $waId)->exists()) {
+                $result['skipped']++;
+                $this->addError($result, "Row {$line}: contact limit of your plan reached — not added.");
+
+                continue;
             }
 
             DB::transaction(function () use ($account, $waId, $data, $email, &$result) {

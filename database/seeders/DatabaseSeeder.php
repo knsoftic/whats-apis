@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RolesAndPermissionsSeeder::class);
+        $this->call(PlanSeeder::class);
 
         $config = config('app.seed_admin');
         $email = $config['email'];

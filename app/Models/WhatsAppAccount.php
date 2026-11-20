@@ -92,6 +92,17 @@ class WhatsAppAccount extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** Customer whose plan limits apply (null = platform-owned, unlimited). */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function botFlows(): HasMany
+    {
+        return $this->hasMany(BotFlow::class, 'whatsapp_account_id');
+    }
+
     public function contacts(): HasMany
     {
         return $this->hasMany(Contact::class, 'whatsapp_account_id');

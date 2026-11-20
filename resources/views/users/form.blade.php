@@ -49,6 +49,35 @@
                     </div>
                 </div>
 
+                <div class="mt-6 grid gap-5 border-t border-slate-100 pt-5 dark:border-slate-800 sm:grid-cols-2">
+                    <div>
+                        <label class="form-label" for="company_name">Business name</label>
+                        <input id="company_name" name="company_name" class="form-input" value="{{ old('company_name', $user->company_name) }}" maxlength="150">
+                    </div>
+                    <div>
+                        <label class="form-label" for="phone">Phone</label>
+                        <input id="phone" name="phone" class="form-input" value="{{ old('phone', $user->phone) }}" maxlength="32">
+                    </div>
+                    <div>
+                        <label class="form-label" for="plan_id">Plan</label>
+                        <select id="plan_id" name="plan_id" class="form-input">
+                            <option value="">— No plan —</option>
+                            @foreach ($plans as $p)
+                                <option value="{{ $p->id }}" @selected((int) old('plan_id', $user->plan_id) === $p->id)>{{ $p->name }}{{ $p->is_active ? '' : ' (inactive)' }}</option>
+                            @endforeach
+                        </select>
+                        <p class="form-help" x-show="role === 'Customer'">Limits apply to the numbers this customer owns.</p>
+                        <p class="form-help" x-show="role !== 'Customer'" x-cloak>Plans only limit Customers; staff roles are unlimited.</p>
+                        @error('plan_id')<p class="form-error">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="form-label" for="plan_expires_at">Plan valid until</label>
+                        <input id="plan_expires_at" name="plan_expires_at" type="date" class="form-input" value="{{ old('plan_expires_at', $user->plan_expires_at?->format('Y-m-d')) }}">
+                        <p class="form-help">Empty = no expiry.</p>
+                        @error('plan_expires_at')<p class="form-error">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+
                 <div class="mt-6 border-t border-slate-100 pt-5 dark:border-slate-800">
                     <p class="text-sm font-semibold text-slate-900 dark:text-white">WhatsApp numbers this user can access</p>
                     <p class="form-help" x-show="role !== 'Agent'">This role already has access to every number. Assignments below only matter for Agents.</p>

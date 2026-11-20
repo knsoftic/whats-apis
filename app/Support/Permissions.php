@@ -11,6 +11,7 @@ final class Permissions
     public const ROLE_SUPER_ADMIN = 'Super Admin';
     public const ROLE_ADMIN = 'Admin';
     public const ROLE_AGENT = 'Agent';
+    public const ROLE_CUSTOMER = 'Customer';  // self-registered business; sees only its own numbers, limited by its plan
 
     public const DASHBOARD_VIEW = 'dashboard.view';
     public const USERS_MANAGE = 'users.manage';
@@ -26,6 +27,8 @@ final class Permissions
     public const TEMPLATES_SEND = 'templates.send';
     public const ACTIVITY_VIEW = 'activity.view';
     public const SETTINGS_MANAGE = 'settings.manage';     // Meta Tech Provider app settings (Super Admin)
+    public const PLANS_MANAGE = 'plans.manage';           // create plans, registration on/off (Super Admin)
+    public const BOTS_MANAGE = 'bots.manage';             // bot flows
 
     /**
      * @return array<int, string>
@@ -47,6 +50,8 @@ final class Permissions
             self::TEMPLATES_SEND,
             self::ACTIVITY_VIEW,
             self::SETTINGS_MANAGE,
+            self::PLANS_MANAGE,
+            self::BOTS_MANAGE,
         ];
     }
 
@@ -59,7 +64,7 @@ final class Permissions
     {
         return [
             self::ROLE_SUPER_ADMIN => self::all(),
-            self::ROLE_ADMIN => array_values(array_diff(self::all(), [self::USERS_MANAGE, self::SETTINGS_MANAGE])),
+            self::ROLE_ADMIN => array_values(array_diff(self::all(), [self::USERS_MANAGE, self::SETTINGS_MANAGE, self::PLANS_MANAGE])),
             self::ROLE_AGENT => [
                 self::DASHBOARD_VIEW,
                 self::CHATS_VIEW,
@@ -68,6 +73,20 @@ final class Permissions
                 self::CONTACTS_MANAGE,
                 self::TEMPLATES_VIEW,
                 self::TEMPLATES_SEND,
+            ],
+            // No ACCOUNTS_ACCESS_ALL → policies limit a Customer to the numbers it owns.
+            self::ROLE_CUSTOMER => [
+                self::DASHBOARD_VIEW,
+                self::ACCOUNTS_MANAGE,
+                self::CHATS_VIEW,
+                self::CHATS_SEND,
+                self::CONTACTS_VIEW,
+                self::CONTACTS_MANAGE,
+                self::CONTACTS_IMPORT_EXPORT,
+                self::TEMPLATES_VIEW,
+                self::TEMPLATES_SYNC,
+                self::TEMPLATES_SEND,
+                self::BOTS_MANAGE,
             ],
         ];
     }

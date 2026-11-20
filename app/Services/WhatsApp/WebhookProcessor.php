@@ -209,6 +209,10 @@ class WebhookProcessor
 
         MessageReceived::dispatch($message);
 
+        if (\App\Models\BotFlow::where('whatsapp_account_id', $account->id)->where('is_active', true)->exists()) {
+            \App\Jobs\RunBotFlow::dispatch($message->id)->onQueue(config('whatsapp.queue'));
+        }
+
         return $message;
     }
 

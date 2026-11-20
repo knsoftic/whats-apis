@@ -54,6 +54,8 @@ class WhatsAppAccountRequest extends FormRequest
             'webhook_verify_token' => [$required, 'string', 'min:8', 'max:128', 'regex:/^[A-Za-z0-9_\-.~]+$/'],
             'graph_api_version' => ['required', 'regex:/^v\d{1,2}\.\d$/'],
             'is_active' => ['boolean'],
+            // Only platform staff may choose an owner (customer whose plan limits apply).
+            'owner_id' => $this->user()->isPlanLimited() ? ['prohibited'] : ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 

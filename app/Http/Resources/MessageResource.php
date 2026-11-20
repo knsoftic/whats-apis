@@ -29,7 +29,9 @@ class MessageResource extends JsonResource
             'error_code' => $this->error_code,
             'error_message' => $this->error_message,
             'timestamp' => $time?->toIso8601String(),
-            'sent_by' => $this->whenLoaded('sentBy', fn () => $this->sentBy?->name),
+            'sent_by' => ($this->content['bot_flow_id'] ?? null)
+                ? '🤖 Bot · '.($this->content['bot_flow'] ?? 'flow')
+                : $this->whenLoaded('sentBy', fn () => $this->sentBy?->name),
             'reply_to' => $this->whenLoaded('replyTo', fn () => $this->replyTo ? [
                 'id' => $this->replyTo->id,
                 'direction' => $this->replyTo->direction,
@@ -71,7 +73,14 @@ class MessageResource extends JsonResource
             'reaction' => ['emoji' => $c['emoji'] ?? null, 'message_id' => $c['message_id'] ?? null],
             'template' => ['name' => $c['name'] ?? null, 'language' => $c['language'] ?? null],
             'audio', 'document', 'sticker', 'image', 'video' => array_intersect_key($c, array_flip(['filename', 'voice', 'animated'])),
-            'interactive' => ['kind' => $c['kind'] ?? null],
+            'interactive' => array_filter([
+                'kind' => $c['kind'] ?? null,
+                // Outgoing bot menu: show the option titles under the bubble.
+                'options' => isset($c['interactive']) ? array_values(array_filter(array_merge(
+                    array_map(fn ($b) => $b['reply']['title'] ?? null, $c['interactive']['action']['buttons'] ?? []),
+                    array_map(fn ($r) => $r['title'] ?? null, $c['interactive']['action']['sections'][0]['rows'] ?? []),
+                ))) : null,
+            ]),
             default => null,
         };
     }

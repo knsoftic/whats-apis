@@ -22,7 +22,7 @@ class UserController extends Controller
         $search = trim((string) $request->query('q'));
 
         $users = User::query()
-            ->with(['roles', 'whatsappAccounts:id,name'])
+            ->with(['roles', 'whatsappAccounts:id,name', 'plan:id,name'])
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")))
@@ -41,6 +41,7 @@ class UserController extends Controller
             'accounts' => WhatsAppAccount::orderBy('name')->get(['id', 'name', 'display_phone_number']),
             'selectedAccounts' => [],
             'currentRole' => Permissions::ROLE_AGENT,
+            'plans' => \App\Models\Plan::orderBy('sort_order')->get(['id', 'name', 'is_active']),
         ]);
     }
 
@@ -54,7 +55,7 @@ class UserController extends Controller
                 'email' => $data['email'],
                 'password' => $data['password'],
                 'is_active' => $data['is_active'],
-            ]);
+            ] + self::planFields($data));
             $user->forceFill(['email_verified_at' => now()])->save();
             $user->syncRoles([$data['role']]);
             $user->whatsappAccounts()->sync($data['account_ids'] ?? []);
@@ -78,6 +79,7 @@ class UserController extends Controller
             'accounts' => WhatsAppAccount::orderBy('name')->get(['id', 'name', 'display_phone_number']),
             'selectedAccounts' => $user->whatsappAccounts()->pluck('whatsapp_accounts.id')->all(),
             'currentRole' => $user->roleName(),
+            'plans' => \App\Models\Plan::orderBy('sort_order')->get(['id', 'name', 'is_active']),
         ]);
     }
 
@@ -99,7 +101,7 @@ class UserController extends Controller
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'is_active' => $data['is_active'],
-            ]);
+            ] + self::planFields($data));
 
             if (! empty($data['password'])) {
                 $user->password = $data['password'];
@@ -134,6 +136,20 @@ class UserController extends Controller
         $this->logger->log('user.deleted', "Deleted user {$email}", properties: ['email' => $email]);
 
         return redirect()->route('users.index')->with('success', 'User deleted.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private static function planFields(array $data): array
+    {
+        return [
+            'company_name' => $data['company_name'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'plan_id' => $data['plan_id'] ?? null,
+            'plan_expires_at' => $data['plan_expires_at'] ?? null,
+        ];
     }
 
     /**

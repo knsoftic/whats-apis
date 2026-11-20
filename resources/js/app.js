@@ -3,11 +3,13 @@ import './bootstrap';
 import Alpine from 'alpinejs';
 import chatApp from './chat';
 import embeddedSignup from './embedded-signup';
+import botBuilder from './bot-builder';
 
 window.Alpine = Alpine;
 
 Alpine.data('chatApp', chatApp);
 Alpine.data('embeddedSignup', embeddedSignup);
+Alpine.data('botBuilder', botBuilder);
 
 /**
  * JSON fetch helper with CSRF + same-origin cookies.

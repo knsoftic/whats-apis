@@ -36,6 +36,10 @@ class UserRequest extends FormRequest
             'is_active' => ['boolean'],
             'account_ids' => ['array'],
             'account_ids.*' => ['integer', 'exists:whatsapp_accounts,id'],
+            'company_name' => ['nullable', 'string', 'max:150'],
+            'phone' => ['nullable', 'string', 'max:32'],
+            'plan_id' => ['nullable', 'integer', 'exists:plans,id'],
+            'plan_expires_at' => ['nullable', 'date'],
         ];
     }
 

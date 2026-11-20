@@ -1,8 +1,14 @@
 <x-app-layout title="WhatsApp Accounts">
     <x-page-header title="WhatsApp Accounts" description="Official WhatsApp Business Cloud API numbers — connect with Meta (Embedded Signup) or add credentials manually.">
-        <x-button :href="route('accounts.connect')" icon="link">Connect with Meta</x-button>
-        <x-button variant="secondary" :href="route('accounts.create')" icon="plus">Add manually</x-button>
+        @if ($canConnect)<x-button :href="route('accounts.connect')" icon="link">Connect with Meta</x-button>@endif
+        @if ($canManual)<x-button variant="secondary" :href="route('accounts.create')" icon="plus">Add manually</x-button>@endif
     </x-page-header>
+
+    @unless ($canConnect || $canManual)
+        <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+            Your plan does not allow adding WhatsApp numbers right now (no active plan or feature not included). Please contact the administrator.
+        </div>
+    @endunless
 
     @if ($accounts->isEmpty())
         <div class="grid gap-5 md:grid-cols-2">

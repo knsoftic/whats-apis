@@ -17,10 +17,15 @@ class AuthorizationTest extends TestCase
         $this->get('/users')->assertRedirect('/login');
     }
 
-    public function test_public_registration_is_disabled(): void
+    public function test_public_registration_can_be_switched_off(): void
     {
+        $this->get('/register')->assertOk();
+
+        \App\Models\Setting::put(\App\Http\Controllers\Auth\RegisteredUserController::SETTING, '0');
+
         $this->get('/register')->assertNotFound();
         $this->post('/register', ['name' => 'x', 'email' => 'x@example.com', 'password' => 'password'])->assertNotFound();
+        \App\Models\Setting::flushCache();
     }
 
     public function test_every_role_can_view_the_dashboard(): void

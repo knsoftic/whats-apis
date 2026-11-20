@@ -97,6 +97,24 @@ class SendWhatsAppMessage implements ShouldQueue
             return $api->sendTemplateMessage($to, (string) $c['name'], (string) $c['language'], $c['components'] ?? []);
         }
 
+        if ($message->type === 'interactive') {
+            // Bot menu: reply buttons or list message.
+            return $api->sendMessage($to, ['type' => 'interactive', 'interactive' => $message->content['interactive'] ?? []], $replyTo);
+        }
+
+        // Media by public link (bot steps) — no upload needed.
+        if (! empty($message->content['media_link'])) {
+            $media = ['link' => (string) $message->content['media_link']];
+
+            return match ($message->type) {
+                'image' => $api->sendImageMessage($to, $media, $message->body, $replyTo),
+                'video' => $api->sendVideoMessage($to, $media, $message->body, $replyTo),
+                'audio' => $api->sendAudioMessage($to, $media, $replyTo),
+                'document' => $api->sendDocumentMessage($to, $media, $message->body, $message->content['filename'] ?? null, $replyTo),
+                default => throw new WhatsAppApiException("Unsupported media type {$message->type}"),
+            };
+        }
+
         /** @var MessageAttachment|null $attachment */
         $attachment = $message->attachments->first();
 

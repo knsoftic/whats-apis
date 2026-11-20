@@ -275,6 +275,15 @@ export default function chatApp(config) {
             this.active = null;
             this.mobileView = 'list';
         },
+        async setBot(action) {
+            try {
+                const res = await http(this.routes.bot.replace('__id__', this.active.id), { method: 'PATCH', body: { action } });
+                this.upsertConversation(res.conversation, false);
+                window.toast(action === 'pause' ? 'Bot paused in this chat' : 'Bot resumed in this chat');
+            } catch (e) {
+                this.notify(e);
+            }
+        },
         async setStatus(status) {
             try {
                 const res = await http(this.url('update', { id: this.active.id }), { method: 'PATCH', body: { status } });

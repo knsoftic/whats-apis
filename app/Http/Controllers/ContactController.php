@@ -64,6 +64,8 @@ class ContactController extends Controller
     {
         $data = $request->validated();
 
+        app(\App\Services\PlanGate::class)->ensureCanAddContacts(\App\Models\WhatsAppAccount::findOrFail($data['whatsapp_account_id']));
+
         $contact = DB::transaction(function () use ($data) {
             $contact = new Contact([
                 'whatsapp_account_id' => $data['whatsapp_account_id'],
@@ -181,7 +183,8 @@ class ContactController extends Controller
         ]);
 
         $account = $request->user()->accessibleAccounts()->findOrFail($data['whatsapp_account_id']);
-        $result = $this->contacts->import($account, $request->file('file'));
+        $remaining = app(\App\Services\PlanGate::class)->remainingContacts($account);
+        $result = $this->contacts->import($account, $request->file('file'), $remaining);
 
         $this->logger->log('contact.imported', "Imported contacts into {$account->name}", properties: [
             'created' => $result['created'], 'updated' => $result['updated'], 'skipped' => $result['skipped'],

@@ -58,6 +58,7 @@ class DashboardController extends Controller
             ->get();
 
         return view('dashboard', [
+            'planUsage' => app(\App\Services\PlanGate::class)->usage(auth()->user()),
             'stats' => $stats,
             'chart' => $chart,
             'chartMax' => max(1, $chart->max(fn ($d) => max($d['in'], $d['out']))),

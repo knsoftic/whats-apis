@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\BotFlowController;
 use App\Http\Controllers\Chat\ChatController;
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\Chat\MessageController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\EmbeddedSignupController;
@@ -87,6 +89,20 @@ Route::middleware(['auth'])->group(function () {
         Route::post('templates/{template}/send', [TemplateController::class, 'send'])
             ->middleware(['permission:'.P::TEMPLATES_SEND, 'throttle:whatsapp-send'])->name('templates.send');
     });
+
+    // ---- Plans + registration switch (Super Admin) ----------------------------
+    Route::middleware('permission:'.P::PLANS_MANAGE)->group(function () {
+        Route::post('plans/settings', [PlanController::class, 'settings'])->name('plans.settings');
+        Route::resource('plans', PlanController::class)->except(['show']);
+    });
+
+    // ---- Bot flows ------------------------------------------------------------
+    Route::middleware('permission:'.P::BOTS_MANAGE)->group(function () {
+        Route::resource('bot-flows', BotFlowController::class)->except(['show'])->names('bots')->parameters(['bot-flows' => 'flow']);
+        Route::patch('bot-flows/{flow}/toggle', [BotFlowController::class, 'toggle'])->name('bots.toggle');
+    });
+    Route::patch('chat/conversations/{conversation}/bot', [BotFlowController::class, 'conversationBot'])
+        ->middleware('permission:'.P::CHATS_VIEW)->name('chat.bot');
 
     // ---- Settings → Meta Tech Provider (Super Admin) -------------------------
     Route::middleware('permission:'.P::SETTINGS_MANAGE)->group(function () {

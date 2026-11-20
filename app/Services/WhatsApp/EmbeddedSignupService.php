@@ -29,6 +29,7 @@ class EmbeddedSignupService
         private readonly MetaPlatform $platform,
         private readonly CheckAccountConnection $checker,
         private readonly ActivityLogger $logger,
+        private readonly \App\Services\PlanGate $planGate,
     ) {}
 
     /**
@@ -84,6 +85,15 @@ class EmbeddedSignupService
         // Same number connected again → update it instead of creating a duplicate.
         $account = WhatsAppAccount::firstOrNew(['phone_number_id' => (string) $phoneId]);
         $created = ! $account->exists;
+
+        if (! $created && ! $user->canAccessAccount($account)) {
+            // Never let one customer take over a number that belongs to someone else.
+            throw new EmbeddedSignupException('This WhatsApp number is already connected to another account on this platform.');
+        }
+
+        if ($created) {
+            $this->planGate->ensureCanAddAccount($user, WhatsAppAccount::ONBOARD_EMBEDDED);
+        }
         $account->fill($credentials + ['meta_business_id' => $input['business_id'] ?? $account->meta_business_id]);
 
         $api = WhatsAppCloudApiService::for($account);
@@ -117,7 +127,15 @@ class EmbeddedSignupService
             $account->forceFill(['webhook_status' => WhatsAppAccount::WEBHOOK_VERIFIED, 'webhook_verified_at' => $account->webhook_verified_at ?? now()]);
         }
 
+        if ($created && $user->isPlanLimited()) {
+            $account->forceFill(['owner_id' => $user->id]);
+        }
+
         $account->save();
+
+        if ($account->owner_id) {
+            $account->users()->syncWithoutDetaching([$account->owner_id]);
+        }
 
         $result = $this->checker->run($account);
         $account->refresh();

@@ -1,6 +1,6 @@
 <x-guest-layout>
     <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">Sign in</h1>
-    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Use the account created by your administrator.</p>
+    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Welcome back — sign in to your inbox.</p>
 
     <x-auth-session-status class="mt-4" :status="session('status')" />
 
@@ -34,4 +34,8 @@
             Log in
         </button>
     </form>
+
+    @if (\App\Http\Controllers\Auth\RegisteredUserController::enabled())
+        <p class="mt-6 text-center text-sm text-slate-500">New here? <a href="{{ route('register') }}" class="font-medium text-emerald-600 hover:underline dark:text-emerald-400">Create an account</a></p>
+    @endif
 </x-guest-layout>

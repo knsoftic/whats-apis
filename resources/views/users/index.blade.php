@@ -21,6 +21,7 @@
                     <tr>
                         <th>User</th>
                         <th>Role</th>
+                        <th>Plan</th>
                         <th>WhatsApp numbers</th>
                         <th>Status</th>
                         <th>Last login</th>
@@ -36,11 +37,20 @@
                                 <p class="text-xs text-slate-500">{{ $user->email }}</p>
                             </td>
                             <td>
-                                <x-badge :color="match ($role) { 'Super Admin' => 'violet', 'Admin' => 'blue', default => 'slate' }">{{ $role }}</x-badge>
+                                <x-badge :color="match ($role) { 'Super Admin' => 'violet', 'Admin' => 'blue', 'Customer' => 'green', default => 'slate' }">{{ $role }}</x-badge>
+                                @if ($user->company_name)<p class="mt-1 text-xs text-slate-500">{{ $user->company_name }}</p>@endif
+                            </td>
+                            <td class="whitespace-nowrap text-xs">
+                                {{ $user->plan?->name ?? '—' }}
+                                @if ($user->plan_expires_at)
+                                    <span @class(['block', 'text-rose-600' => $user->plan_expires_at->isPast(), 'text-slate-500' => ! $user->plan_expires_at->isPast()])>{{ $user->plan_expires_at->isPast() ? 'expired' : 'until' }} {{ $user->plan_expires_at->toFormattedDateString() }}</span>
+                                @endif
                             </td>
                             <td class="max-w-xs text-xs text-slate-600 dark:text-slate-400">
                                 @if ($user->hasAnyRole(['Super Admin', 'Admin']))
                                     <span class="italic">All numbers</span>
+                                @elseif ($user->hasRole('Customer'))
+                                    {{ $user->whatsappAccounts->pluck('name')->join(', ') ?: '— none yet —' }}
                                 @else
                                     {{ $user->whatsappAccounts->pluck('name')->join(', ') ?: '— none assigned —' }}
                                 @endif

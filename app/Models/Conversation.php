@@ -30,6 +30,7 @@ class Conversation extends Model
         'last_message_at',
         'last_inbound_at',
         'assigned_user_id',
+        'bot_paused_until',
     ];
 
     protected function casts(): array
@@ -38,7 +39,13 @@ class Conversation extends Model
             'unread_count' => 'integer',
             'last_message_at' => 'datetime',
             'last_inbound_at' => 'datetime',
+            'bot_paused_until' => 'datetime',
         ];
+    }
+
+    public function isBotPaused(): bool
+    {
+        return $this->bot_paused_until !== null && $this->bot_paused_until->isFuture();
     }
 
     public function account(): BelongsTo

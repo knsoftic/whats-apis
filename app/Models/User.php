@@ -18,9 +18,13 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'company_name',
         'email',
+        'phone',
         'password',
         'is_active',
+        'plan_id',
+        'plan_expires_at',
     ];
 
     protected $hidden = [
@@ -33,6 +37,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'plan_expires_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
@@ -45,6 +50,39 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(WhatsAppAccount::class, 'user_whatsapp_account', 'user_id', 'whatsapp_account_id')
             ->withTimestamps();
+    }
+
+    public function plan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    /** Accounts whose plan limits are charged to this user. */
+    public function ownedAccounts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WhatsAppAccount::class, 'owner_id');
+    }
+
+    /** Active plan, or null when none / expired / disabled. */
+    public function activePlan(): ?Plan
+    {
+        $plan = $this->plan;
+
+        if (! $plan || ! $plan->is_active) {
+            return null;
+        }
+
+        if ($this->plan_expires_at && $this->plan_expires_at->isPast()) {
+            return null;
+        }
+
+        return $plan;
+    }
+
+    /** Platform staff (Super Admin / Admin) are never limited by plans. */
+    public function isPlanLimited(): bool
+    {
+        return ! $this->canAccessAllAccounts();
     }
 
     public function canAccessAllAccounts(): bool

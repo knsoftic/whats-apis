@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class LegalPagesTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_privacy_policy_is_public_and_complete(): void
     {
         config(['legal.email' => 'privacy@whats-apis.com', 'legal.company' => 'KN Softic']);

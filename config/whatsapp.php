@@ -45,6 +45,15 @@ return [
         'retention_days' => (int) env('WHATSAPP_WEBHOOK_RETENTION_DAYS', 30),
     ],
 
+    'bot' => [
+        // After an agent replies manually, bots pause in that chat for this many minutes.
+        'pause_after_agent_minutes' => (int) env('WHATSAPP_BOT_PAUSE_MINUTES', 60),
+        // "Handoff to agent" step pauses bots in that chat for this many hours.
+        'handoff_hours' => (int) env('WHATSAPP_BOT_HANDOFF_HOURS', 24),
+        // Safety net: a bot can send at most this many messages per incoming message.
+        'max_steps' => 8,
+    ],
+
     // Outgoing messages per minute per user (dashboard sending).
     'send_rate_limit' => (int) env('WHATSAPP_SEND_RATE_LIMIT', 60),
 

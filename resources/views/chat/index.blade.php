@@ -14,6 +14,7 @@
         'search' => route('chat.search'),
         'templates' => route('chat.templates'),
         'contact' => Route::has('contacts.show') ? route('contacts.show', ['contact' => '__id__']) : null,
+        'bot' => route('chat.bot', ['conversation' => '__id__']),
     ];
 @endphp
 <x-app-layout title="Chats" :full="true">
@@ -145,6 +146,7 @@
                                 <span x-text="active.contact?.phone"></span>
                                 <span x-show="active.contact?.profile_name && active.contact?.profile_name !== active.contact?.name" x-text="' · ~' + active.contact?.profile_name"></span>
                                 <span x-show="active.contact?.opt_in_status === 'opted_out'" class="text-rose-500"> · opted out</span>
+                                <span x-show="active.bot_paused" class="text-amber-600"> · bot paused</span>
                             </p>
                         </div>
                         <div x-data="{ menu: false }" class="relative">
@@ -154,6 +156,8 @@
                                     <a :href="url('contact', { id: active.contact.id })" class="block px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700">Contact details</a>
                                 </template>
                                 <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" @click="markUnread()">Mark as unread</button>
+                                <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" x-show="!active.bot_paused" @click="setBot('pause')">Pause bot (24 h)</button>
+                                <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" x-show="active.bot_paused" @click="setBot('resume')">Resume bot</button>
                                 <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" x-show="active.status !== 'closed'" @click="setStatus('closed')">Close conversation</button>
                                 <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" x-show="active.status === 'closed'" @click="setStatus('open')">Reopen conversation</button>
                             </div>
@@ -263,6 +267,15 @@
 
                                         {{-- Text / caption --}}
                                         <div x-show="m.body && m.type !== 'location' && m.type !== 'unsupported'" class="whitespace-pre-wrap break-words" x-html="formatText(m.body)"></div>
+
+                                        {{-- Bot menu options --}}
+                                        <template x-if="m.direction === 'outbound' && m.type === 'interactive' && (m.content?.options || []).length">
+                                            <div class="mt-1.5 space-y-1">
+                                                <template x-for="opt in m.content.options">
+                                                    <div class="rounded-lg bg-white/70 py-1 text-center text-xs font-medium text-sky-700 dark:bg-white/10 dark:text-sky-300" x-text="opt"></div>
+                                                </template>
+                                            </div>
+                                        </template>
 
                                         {{-- Meta line --}}
                                         <div class="-mb-0.5 mt-0.5 flex items-center justify-end gap-1 text-[11px] text-slate-500 dark:text-slate-400">

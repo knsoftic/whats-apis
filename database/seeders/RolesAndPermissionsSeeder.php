@@ -16,6 +16,16 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /**
+     * Cheap check used at runtime (registration): seed only when a role is missing.
+     */
+    public static function ensureRolesExist(): void
+    {
+        if (Role::where('guard_name', 'web')->count() < count(Permissions::roles())) {
+            self::ensure();
+        }
+    }
+
+    /**
      * Idempotent: creates missing roles/permissions and syncs role permissions.
      */
     public static function ensure(): void

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Actions\WhatsApp\CheckAccountConnection;
+use App\Exceptions\PlanLimitException;
+use App\Services\PlanGate;
 use App\Http\Requests\WhatsAppAccountRequest;
 use App\Models\WhatsAppAccount;
 use App\Services\ActivityLogger;
@@ -18,6 +20,7 @@ class WhatsAppAccountController extends Controller
     public function __construct(
         private readonly ActivityLogger $logger,
         private readonly CheckAccountConnection $checker,
+        private readonly PlanGate $planGate,
     ) {}
 
     public function index(Request $request): View
@@ -32,14 +35,28 @@ class WhatsAppAccountController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('accounts.index', compact('accounts'));
+        $limited = $request->user()->isPlanLimited();
+        $plan = $limited ? $request->user()->activePlan() : null;
+
+        return view('accounts.index', [
+            'accounts' => $accounts,
+            'canConnect' => ! $limited || ($plan?->allow_embedded_signup ?? false),
+            'canManual' => ! $limited || ($plan?->allow_manual ?? false),
+        ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View|RedirectResponse
     {
         $this->authorize('create', WhatsAppAccount::class);
 
+        try {
+            $this->planGate->ensureCanAddAccount($request->user(), WhatsAppAccount::ONBOARD_MANUAL);
+        } catch (PlanLimitException $e) {
+            return redirect()->route('accounts.index')->with('error', $e->getMessage());
+        }
+
         return view('accounts.form', [
+            'owners' => $this->ownerOptions($request),
             'account' => new WhatsAppAccount([
                 'graph_api_version' => config('whatsapp.default_graph_version'),
                 'is_active' => true,
@@ -50,7 +67,15 @@ class WhatsAppAccountController extends Controller
 
     public function store(WhatsAppAccountRequest $request): RedirectResponse
     {
-        $account = WhatsAppAccount::create($request->validated() + ['created_by' => $request->user()->id]);
+        $user = $request->user();
+        $this->planGate->ensureCanAddAccount($user, WhatsAppAccount::ONBOARD_MANUAL);
+
+        $data = $request->validated();
+        $ownerId = $data['owner_id'] ?? null;
+        unset($data['owner_id']);
+
+        $account = WhatsAppAccount::create($data + ['created_by' => $user->id]);
+        $this->assignOwner($account, $user->isPlanLimited() ? $user->id : $ownerId);
 
         $this->logger->log('account.created', "Added WhatsApp account {$account->name}", $account, [
             'waba_id' => $account->waba_id,
@@ -85,13 +110,45 @@ class WhatsAppAccountController extends Controller
 
         return view('accounts.form', [
             'account' => $account,
+            'owners' => $this->ownerOptions(request()),
             'suggestedVerifyToken' => Str::random(40),
         ]);
+    }
+
+    /**
+     * Customers (plan users) an admin can make owner of a number.
+     */
+    private function ownerOptions(Request $request): \Illuminate\Support\Collection
+    {
+        if ($request->user()->isPlanLimited()) {
+            return collect();
+        }
+
+        return \App\Models\User::role(\App\Support\Permissions::ROLE_CUSTOMER)->orderBy('name')->get(['id', 'name', 'email', 'company_name']);
+    }
+
+    /**
+     * The owner's plan limits apply to the number, and the owner can see it.
+     */
+    private function assignOwner(WhatsAppAccount $account, ?int $ownerId): void
+    {
+        $account->forceFill(['owner_id' => $ownerId])->save();
+
+        if ($ownerId) {
+            $account->users()->syncWithoutDetaching([$ownerId]);
+        }
     }
 
     public function update(WhatsAppAccountRequest $request, WhatsAppAccount $account): RedirectResponse
     {
         $data = $request->validated();
+        $ownerChange = array_key_exists('owner_id', $data) && ! $request->user()->isPlanLimited();
+        $newOwner = $data['owner_id'] ?? null;
+        unset($data['owner_id']);
+
+        if ($ownerChange && (int) $newOwner !== (int) $account->owner_id) {
+            $this->assignOwner($account, $newOwner ? (int) $newOwner : null);
+        }
 
         // Blank secret fields mean "keep the current value".
         foreach (['access_token', 'app_secret', 'webhook_verify_token'] as $secret) {

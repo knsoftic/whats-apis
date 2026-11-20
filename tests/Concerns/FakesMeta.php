@@ -69,6 +69,17 @@ trait FakesMeta
         ]);
     }
 
+    /**
+     * Like Meta: every accepted message gets its own wamid.
+     */
+    protected function metaSendOkEachTime(): \Closure
+    {
+        return fn () => Http::response([
+            'messaging_product' => 'whatsapp',
+            'messages' => [['id' => 'wamid.'.\Illuminate\Support\Str::random(24)]],
+        ]);
+    }
+
     protected function metaError(int $code, string $message = 'Error', int $status = 400): \GuzzleHttp\Promise\PromiseInterface
     {
         return Http::response(['error' => ['message' => $message, 'type' => 'OAuthException', 'code' => $code, 'fbtrace_id' => 'X']], $status);

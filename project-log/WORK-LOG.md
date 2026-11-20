@@ -98,3 +98,9 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Server run stopped at step 1: "PHP extension 'mbstring' missing" although the same check passed earlier.
 - Cause: `php -m | grep -q` under `set -o pipefail`. `grep -q` exits on the first match, `php -m` can get SIGPIPE (exit 141) → random false failure.
 - Fix (commit `9b1cf58`): capture output first, then grep (also for the Redis and port checks).
+
+### 2026-11-20 · Phase 9 — Registration, Plans, Bot Flows
+- Public registration (Customer role + default plan, terms acceptance, ON/OFF switch).
+- Plans: Embedded/manual permission, max numbers, daily message limit, max contacts, bots on/off + max flows, trial/expiry; enforced in one place (`PlanGate`); number ownership (`owner_id`) and customer isolation.
+- Bot flows: keyword / welcome / fallback / menu-only triggers; text, menu (buttons/list → other flows), image, document, handoff steps; pause after agent reply; chat pause/resume.
+- **Result:** ✅ 206 tests pass (830 assertions). Plans page and bot builder checked in browser.

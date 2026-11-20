@@ -94,6 +94,18 @@
                     </div>
                 </x-card>
 
+                @if (($owners ?? collect())->isNotEmpty())
+                    <x-card title="Owner (customer)" subtitle="The customer whose plan limits apply to this number. Empty = platform-owned, no limits.">
+                        <select name="owner_id" class="form-input">
+                            <option value="">— Platform (no plan limits) —</option>
+                            @foreach ($owners as $owner)
+                                <option value="{{ $owner->id }}" @selected((int) old('owner_id', $account->owner_id) === $owner->id)>{{ $owner->name }}{{ $owner->company_name ? ' · '.$owner->company_name : '' }} ({{ $owner->email }})</option>
+                            @endforeach
+                        </select>
+                        @error('owner_id')<p class="form-error">{{ $message }}</p>@enderror
+                    </x-card>
+                @endif
+
                 <x-card>
                     <label class="flex items-center gap-3 text-sm">
                         <input type="hidden" name="is_active" value="0">

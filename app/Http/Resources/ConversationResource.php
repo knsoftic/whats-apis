@@ -25,6 +25,8 @@ class ConversationResource extends JsonResource
             'last_message_at' => $this->last_message_at?->toIso8601String(),
             'within_window' => $this->isWithinServiceWindow(),
             'window_expires_at' => $this->serviceWindowExpiresAt()?->toIso8601String(),
+            'bot_paused' => $this->isBotPaused(),
+            'bot_paused_until' => $this->bot_paused_until?->toIso8601String(),
             'contact' => $contact ? [
                 'id' => $contact->id,
                 'name' => $contact->displayName(),

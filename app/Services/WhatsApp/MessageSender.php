@@ -27,6 +27,7 @@ class MessageSender
         private readonly OutgoingMediaValidator $mediaValidator,
         private readonly TemplateMessageBuilder $templateBuilder,
         private readonly ActivityLogger $logger,
+        private readonly \App\Services\PlanGate $planGate,
     ) {}
 
     public function sendText(Conversation $conversation, string $text, User $user, ?Message $replyTo = null): Message
@@ -143,6 +144,8 @@ class MessageSender
             $this->ensureCanSendFreeForm($message->conversation);
         }
 
+        $this->planGate->ensureCanSend($message->account);
+
         $message->forceFill([
             'status' => Message::STATUS_PENDING,
             'wa_message_id' => null,
@@ -181,6 +184,8 @@ class MessageSender
             $replyTo = null; // never reply to a message from another conversation
         }
 
+        $this->planGate->ensureCanSend($account);
+
         $message = DB::transaction(function () use ($conversation, $user, $attributes, $replyTo, $attachment, $account, $contact) {
             $message = Message::create(array_merge([
                 'whatsapp_account_id' => $account->id,
@@ -205,6 +210,8 @@ class MessageSender
                 'last_message_preview' => $message->previewText(),
                 'last_message_direction' => Message::OUT,
                 'last_message_at' => now(),
+                // A human replied → bots stay quiet in this chat for a while.
+                'bot_paused_until' => now()->addMinutes((int) config('whatsapp.bot.pause_after_agent_minutes', 60)),
             ])->save();
 
             return $message;

@@ -22,9 +22,15 @@ class EmbeddedSignupController extends Controller
         private readonly MetaPlatform $platform,
     ) {}
 
-    public function show(): View
+    public function show(Request $request): View|RedirectResponse
     {
         $this->authorize('create', WhatsAppAccount::class);
+
+        try {
+            app(\App\Services\PlanGate::class)->ensureCanAddAccount($request->user(), WhatsAppAccount::ONBOARD_EMBEDDED);
+        } catch (\App\Exceptions\PlanLimitException $e) {
+            return redirect()->route('accounts.index')->with('error', $e->getMessage());
+        }
 
         return view('accounts.connect', [
             'platform' => $this->platform,
@@ -48,7 +54,7 @@ class EmbeddedSignupController extends Controller
 
         try {
             $result = $this->service->complete($data, $request->user());
-        } catch (EmbeddedSignupException $e) {
+        } catch (EmbeddedSignupException|\App\Exceptions\PlanLimitException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
