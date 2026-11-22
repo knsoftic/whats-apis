@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\CurrentAccountController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LandingEditorController;
 use App\Http\Controllers\ProfileController;
@@ -35,7 +36,25 @@ Route::middleware(['auth'])->group(function () {
     // User management — Super Admin only (users.manage).
     Route::middleware('permission:'.P::USERS_MANAGE)->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
+        // Suspend / block / re-activate.
+        Route::post('/users/{user}/status', [UserController::class, 'status'])->name('users.status');
+        // "Login as user" (Super Admin only — checked again in the controller).
+        Route::post('/users/{user}/impersonate', [ImpersonationController::class, 'start'])->name('users.impersonate');
     });
+
+    // Back to the Super Admin's own account after "Login as user".
+    Route::post('/impersonate/leave', [ImpersonationController::class, 'leave'])->name('impersonate.leave');
+
+    // Shown to suspended users instead of the app.
+    Route::get('/account/suspended', function () {
+        $user = auth()->user();
+
+        if (! $user->isSuspended() || \App\Support\Impersonation::active()) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('account.suspended', ['user' => $user]);
+    })->name('account.suspended');
 
     // Landing page editor + contact form inbox — Super Admin (settings.manage).
     Route::middleware('permission:'.P::SETTINGS_MANAGE)->group(function () {

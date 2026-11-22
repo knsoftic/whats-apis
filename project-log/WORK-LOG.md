@@ -164,3 +164,10 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Likely cause: a fresh “Add account” form for a number that is already saved, so the save is blocked and its URL never exists.
 - Added `php artisan whatsapp:webhooks`, which prints the exact Callback URL + verify token of every saved account, and a log warning when Meta calls an unknown account id.
 - **Result:** ✅ tests pass.
+
+### 2026-11-22 · Phase 13 — Login as user, suspend / block, locked customer numbers
+- Users page: “Login as” (Super Admin → any non–Super Admin, amber return bar, audit with impersonated_by, password/profile changes blocked), Suspend / Block with a reason + Re-activate, status filter.
+- Suspended users only see a notice; blocked users are signed out and can't sign in; their numbers stop sending and bots pause.
+- Customers can no longer delete a connected number or change its WABA / Phone Number ID; a full plan hides Add/Connect (“2 / 2 used”). Only staff can delete numbers.
+- Browser-checked; fixed overflowing table actions and an invalid `@elseunless` directive found during the check.
+- **Result:** ✅ 269 tests pass (1326 assertions). Local test customer removed.

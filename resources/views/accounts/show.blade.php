@@ -218,18 +218,30 @@
         </x-card>
     </div>
 
-    {{-- Danger zone --}}
-    <x-card class="mt-6 border-rose-200 dark:border-rose-900" title="Danger zone">
-        <form method="POST" action="{{ route('accounts.destroy', $account) }}" class="flex flex-wrap items-end gap-3"
-              onsubmit="return confirm('Delete this WhatsApp account and ALL its contacts, conversations, messages and templates? This cannot be undone.')">
-            @csrf @method('DELETE')
-            <div class="min-w-[240px] flex-1">
-                <label class="form-label" for="confirm_name">Type <strong>{{ $account->name }}</strong> to delete this account and all of its data</label>
-                <input id="confirm_name" name="confirm_name" class="form-input" autocomplete="off">
-                @error('confirm_name')<p class="form-error">{{ $message }}</p>@enderror
-            </div>
-            <x-button variant="danger" icon="trash">Delete account</x-button>
-        </form>
-        <p class="mt-3 text-xs text-slate-500">Tip: use “Disable account” instead if you only want to stop sending.</p>
-    </x-card>
+    {{-- Danger zone (staff only — customers keep the numbers they connected) --}}
+    @can('delete', $account)
+        <x-card class="mt-6 border-rose-200 dark:border-rose-900" title="Danger zone">
+            @if ($account->owner)
+                <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Owned by customer <strong>{{ $account->owner->name }}</strong> ({{ $account->owner->email }}). Deleting it frees one number slot on their plan.</p>
+            @endif
+            <form method="POST" action="{{ route('accounts.destroy', $account) }}" class="flex flex-wrap items-end gap-3"
+                  onsubmit="return confirm('Delete this WhatsApp account and ALL its contacts, conversations, messages and templates? This cannot be undone.')">
+                @csrf @method('DELETE')
+                <div class="min-w-[240px] flex-1">
+                    <label class="form-label" for="confirm_name">Type <strong>{{ $account->name }}</strong> to delete this account and all of its data</label>
+                    <input id="confirm_name" name="confirm_name" class="form-input" autocomplete="off">
+                    @error('confirm_name')<p class="form-error">{{ $message }}</p>@enderror
+                </div>
+                <x-button variant="danger" icon="trash">Delete account</x-button>
+            </form>
+            <p class="mt-3 text-xs text-slate-500">Tip: use “Disable account” instead if you only want to stop sending.</p>
+        </x-card>
+    @else
+        <x-card class="mt-6">
+            <p class="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400">
+                <x-icon name="lock" class="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+                <span>This number is linked to your account and can’t be removed or swapped here. To remove it, please contact support{{ $brand->get('site.support_email') ? ' ('.$brand->get('site.support_email').')' : '' }}. You can still disable it to stop sending.</span>
+            </p>
+        </x-card>
+    @endcan
 </x-app-layout>

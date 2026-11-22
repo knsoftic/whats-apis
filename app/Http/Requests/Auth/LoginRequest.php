@@ -53,6 +53,16 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Blocked by the Super Admin → no sign-in (only shown after a correct password).
+        if (Auth::user()?->isBlocked()) {
+            Auth::guard('web')->logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'This account has been blocked. Please contact support.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

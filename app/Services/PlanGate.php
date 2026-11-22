@@ -31,6 +31,13 @@ class PlanGate
 
     private function requirePlan(User $user): Plan
     {
+        // Suspended / blocked by the Super Admin → their numbers stop (sending, bots, new numbers).
+        if (! $user->isInGoodStanding()) {
+            throw new PlanLimitException($user->isBlocked()
+                ? 'This account is blocked. Please contact support.'
+                : 'This account is suspended'.($user->status_reason ? ': '.$user->status_reason : '').'. Please contact support.');
+        }
+
         $plan = $user->activePlan();
 
         if (! $plan) {
@@ -66,7 +73,8 @@ class PlanGate
         }
 
         if ($plan->max_whatsapp_accounts !== null && $user->ownedAccounts()->count() >= $plan->max_whatsapp_accounts) {
-            throw new PlanLimitException("Your plan ({$plan->name}) allows {$plan->max_whatsapp_accounts} WhatsApp number(s). Remove one or upgrade your plan.");
+            // Customers cannot delete numbers themselves, so there is no "remove one" for them.
+            throw new PlanLimitException("Your plan ({$plan->name}) allows {$plan->max_whatsapp_accounts} WhatsApp number(s) and you already have {$user->ownedAccounts()->count()}. Upgrade your plan, or ask support to remove a number.");
         }
     }
 
@@ -142,6 +150,10 @@ class PlanGate
 
         if (! $owner) {
             return true;
+        }
+
+        if (! $owner->isInGoodStanding()) {
+            return false;
         }
 
         $plan = $owner->activePlan();

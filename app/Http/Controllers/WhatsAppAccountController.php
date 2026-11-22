@@ -38,10 +38,16 @@ class WhatsAppAccountController extends Controller
         $limited = $request->user()->isPlanLimited();
         $plan = $limited ? $request->user()->activePlan() : null;
 
+        // Customers: numbers used vs. plan limit (they can't delete, so a full plan means no more adding).
+        $used = $limited ? $request->user()->ownedAccounts()->count() : null;
+        $max = $plan?->max_whatsapp_accounts;
+        $atLimit = $limited && $max !== null && $used >= $max;
+
         return view('accounts.index', [
             'accounts' => $accounts,
-            'canConnect' => ! $limited || ($plan?->allow_embedded_signup ?? false),
-            'canManual' => ! $limited || ($plan?->allow_manual ?? false),
+            'canConnect' => ! $atLimit && (! $limited || ($plan?->allow_embedded_signup ?? false)),
+            'canManual' => ! $atLimit && (! $limited || ($plan?->allow_manual ?? false)),
+            'numberLimit' => $limited ? ['used' => $used, 'max' => $max, 'full' => $atLimit, 'plan' => $plan?->name] : null,
         ]);
     }
 

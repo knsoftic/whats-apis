@@ -32,15 +32,41 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    /** Account status set by the Super Admin (Users page). */
+    public const STATUS_ACTIVE = 'active';
+
+    /** Can still sign in but only sees a notice; their WhatsApp numbers stop sending and bots pause. */
+    public const STATUS_SUSPENDED = 'suspended';
+
+    /** Cannot sign in at all; numbers stop like suspended. */
+    public const STATUS_BLOCKED = 'blocked';
+
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'plan_expires_at' => 'datetime',
+            'status_changed_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->status === self::STATUS_SUSPENDED;
+    }
+
+    public function isBlocked(): bool
+    {
+        return $this->status === self::STATUS_BLOCKED;
+    }
+
+    /** Active account (not suspended / blocked). */
+    public function isInGoodStanding(): bool
+    {
+        return ($this->status ?? self::STATUS_ACTIVE) === self::STATUS_ACTIVE;
     }
 
     /**

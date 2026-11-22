@@ -61,6 +61,26 @@ class WhatsAppAccountRequest extends FormRequest
         ];
     }
 
+    /**
+     * Customers cannot point an existing account at another number / WABA —
+     * that would let them swap numbers around their plan's limit.
+     */
+    public function after(): array
+    {
+        return [function (\Illuminate\Validation\Validator $validator) {
+            /** @var WhatsAppAccount|null $account */
+            $account = $this->route('account');
+
+            if (! $account || $this->user()->can('changeNumber', $account)) {
+                return;
+            }
+
+            if ((string) $this->input('waba_id') !== (string) $account->waba_id || (string) $this->input('phone_number_id') !== (string) $account->phone_number_id) {
+                $validator->errors()->add('phone_number_id', 'The WhatsApp number of this account can’t be changed. Contact support if you need a different number.');
+            }
+        }];
+    }
+
     public function messages(): array
     {
         return [

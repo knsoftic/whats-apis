@@ -22,7 +22,10 @@ class UserController extends Controller
         $search = trim((string) $request->query('q'));
 
         $users = User::query()
-            ->with(['roles', 'whatsappAccounts:id,name', 'plan:id,name'])
+            ->with(['roles', 'whatsappAccounts:id,name', 'plan:id,name,max_whatsapp_accounts'])
+            ->withCount('ownedAccounts')
+            ->when(in_array($request->query('status'), [User::STATUS_ACTIVE, User::STATUS_SUSPENDED, User::STATUS_BLOCKED], true),
+                fn ($q) => $q->where('status', $request->query('status')))
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")))
@@ -120,6 +123,43 @@ class UserController extends Controller
         ]);
 
         return redirect()->route('users.index')->with('success', 'User updated.');
+    }
+
+    /** Suspend / block / re-activate a user (Super Admin). */
+    public function status(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', \Illuminate\Validation\Rule::in([User::STATUS_ACTIVE, User::STATUS_SUSPENDED, User::STATUS_BLOCKED])],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if ($request->user()->is($user)) {
+            return back()->with('error', 'You cannot change your own status.');
+        }
+
+        if ($user->hasRole(Permissions::ROLE_SUPER_ADMIN)) {
+            return back()->with('error', 'A Super Admin cannot be suspended or blocked.');
+        }
+
+        $from = $user->status ?? User::STATUS_ACTIVE;
+        $reason = $data['status'] === User::STATUS_ACTIVE ? null : (trim((string) ($data['reason'] ?? '')) ?: null);
+
+        $user->forceFill([
+            'status' => $data['status'],
+            'status_reason' => $reason,
+            'status_changed_at' => now(),
+            'status_changed_by' => $request->user()->id,
+        ])->save();
+
+        $this->logger->log('user.status_changed', "{$user->email}: {$from} → {$data['status']}", $user, [
+            'from' => $from, 'to' => $data['status'], 'reason' => $reason,
+        ]);
+
+        return back()->with('success', match ($data['status']) {
+            User::STATUS_SUSPENDED => "{$user->name} is suspended — they only see a notice and their WhatsApp numbers stop sending.",
+            User::STATUS_BLOCKED => "{$user->name} is blocked — they can no longer sign in and their numbers stop sending.",
+            default => "{$user->name} is active again.",
+        });
     }
 
     public function destroy(Request $request, User $user): RedirectResponse

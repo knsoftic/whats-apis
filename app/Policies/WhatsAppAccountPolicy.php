@@ -29,9 +29,20 @@ class WhatsAppAccountPolicy
         return $this->view($user, $account);
     }
 
+    /**
+     * Only staff (Super Admin / Admin) can remove a number. Customers keep what
+     * they connected — otherwise they could delete and re-add to get around
+     * their plan's number limit.
+     */
     public function delete(User $user, WhatsAppAccount $account): bool
     {
-        return $this->view($user, $account);
+        return ! $user->isPlanLimited() && $this->view($user, $account);
+    }
+
+    /** Changing which number / WABA an account points to: staff only (same reason as delete). */
+    public function changeNumber(User $user, WhatsAppAccount $account): bool
+    {
+        return ! $user->isPlanLimited() && $this->view($user, $account);
     }
 
     /** Working inside the account (chats, contacts, templates). */

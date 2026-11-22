@@ -18,6 +18,11 @@ class LogAuthenticationActivity
 
     public function handleLogin(Login $event): void
     {
+        // "Login as user" / return to admin is logged by ImpersonationController, not as a real sign-in.
+        if (\App\Support\Impersonation::$switching) {
+            return;
+        }
+
         if ($event->user instanceof User) {
             $event->user->forceFill([
                 'last_login_at' => now(),

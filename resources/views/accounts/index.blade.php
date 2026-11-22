@@ -4,11 +4,28 @@
         @if ($canManual)<x-button variant="secondary" :href="route('accounts.create')" icon="plus">Add manually</x-button>@endif
     </x-page-header>
 
-    @unless ($canConnect || $canManual)
+    @if ($numberLimit && $numberLimit['max'] !== null)
+        <div @class(['mb-6 flex flex-wrap items-center gap-3 rounded-2xl border px-5 py-4 text-sm',
+            'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-500/10 dark:text-amber-200' => $numberLimit['full'],
+            'border-slate-200 bg-white text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300' => ! $numberLimit['full']])>
+            <x-icon :name="$numberLimit['full'] ? 'lock' : 'phone'" class="h-5 w-5 shrink-0" />
+            <p class="min-w-0 flex-1">
+                <strong>{{ $numberLimit['used'] }} / {{ $numberLimit['max'] }}</strong> WhatsApp numbers used on your {{ $numberLimit['plan'] }} plan.
+                @if ($numberLimit['full'])
+                    You can't add more. Connected numbers stay linked to your account — upgrade your plan to add another, or contact support to remove one.
+                @else
+                    Numbers you connect stay linked to your account and can only be removed by support.
+                @endif
+            </p>
+            @if ($numberLimit['full'] && Route::has('billing.index'))
+                <x-button size="sm" :href="route('billing.index')" icon="chart">Upgrade plan</x-button>
+            @endif
+        </div>
+    @elseif (! ($canConnect || $canManual))
         <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
             Your plan does not allow adding WhatsApp numbers right now (no active plan or feature not included). Please contact the administrator.
         </div>
-    @endunless
+    @endif
 
     @if ($accounts->isEmpty())
         <div class="grid gap-5 md:grid-cols-2">

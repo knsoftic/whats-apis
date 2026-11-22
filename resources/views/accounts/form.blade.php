@@ -1,4 +1,8 @@
-@php $editing = $account->exists; @endphp
+@php
+    $editing = $account->exists;
+    // Customers keep the number they connected (no swapping around the plan limit).
+    $numberLocked = $editing && auth()->user()->cannot('changeNumber', $account);
+@endphp
 <x-app-layout :title="$editing ? 'Edit WhatsApp account' : 'Add WhatsApp account'">
     <div class="mx-auto max-w-4xl">
         <x-page-header :title="$editing ? 'Edit '.$account->name : 'Add WhatsApp account'"
@@ -39,13 +43,14 @@
                     <div class="grid gap-5 sm:grid-cols-2">
                         <div>
                             <label class="form-label" for="waba_id">WhatsApp Business Account ID (WABA ID)</label>
-                            <input id="waba_id" name="waba_id" class="form-input font-mono" inputmode="numeric" value="{{ old('waba_id', $account->waba_id) }}" required>
+                            <input id="waba_id" name="waba_id" class="form-input font-mono read-only:bg-slate-50 read-only:text-slate-500 dark:read-only:bg-slate-800/60" inputmode="numeric" value="{{ old('waba_id', $account->waba_id) }}" required @readonly($numberLocked)>
                             @error('waba_id')<p class="form-error">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label class="form-label" for="phone_number_id">Phone Number ID</label>
-                            <input id="phone_number_id" name="phone_number_id" class="form-input font-mono" inputmode="numeric" value="{{ old('phone_number_id', $account->phone_number_id) }}" required>
+                            <input id="phone_number_id" name="phone_number_id" class="form-input font-mono read-only:bg-slate-50 read-only:text-slate-500 dark:read-only:bg-slate-800/60" inputmode="numeric" value="{{ old('phone_number_id', $account->phone_number_id) }}" required @readonly($numberLocked)>
                             <p class="form-help">The numeric ID shown under the number — not the phone number itself.</p>
+                            @if ($numberLocked)<p class="form-help flex items-center gap-1"><x-icon name="lock" class="h-3.5 w-3.5" /> The number can't be changed. Contact support for a different number.</p>@endif
                             @error('phone_number_id')<p class="form-error">{{ $message }}</p>@enderror
                             @php
                                 // Number already added (and visible to this user)? Point to it — its Callback URL is the one Meta needs.

@@ -31,6 +31,11 @@ class ActivityLogger
             $request = app()->runningInConsole() && ! app()->runningUnitTests() ? null : request();
             $user ??= auth()->user();
 
+            // Done by the Super Admin while "logged in as" this user → keep who really did it.
+            if ($request && \App\Support\Impersonation::active()) {
+                $properties['impersonated_by'] = session(\App\Support\Impersonation::SESSION_KEY);
+            }
+
             return ActivityLog::create([
                 'user_id' => $user?->id,
                 'whatsapp_account_id' => $accountId,
