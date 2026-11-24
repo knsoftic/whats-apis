@@ -19,6 +19,9 @@ export function formatText(text) {
     return html;
 }
 
+/** Browser recorder objects live outside Alpine's reactive state (proxies break native methods). */
+const voice = { recorder: null, stream: null, chunks: [], mime: '' };
+
 export default function chatApp(config) {
     return {
         // ---- config / permissions
@@ -54,6 +57,10 @@ export default function chatApp(config) {
         file: null,
         fileAsDocument: false,
         sending: false,
+        // voice notes
+        recording: false,
+        recSeconds: 0,
+        recTimer: null,
 
         // ---- templates / new chat
         templates: [],
@@ -352,6 +359,83 @@ export default function chatApp(config) {
             } finally {
                 this.sending = false;
                 this.$nextTick(() => this.$refs.composer?.focus());
+            }
+        },
+        // ============================================================ voice notes
+        canRecord() {
+            return !!(window.MediaRecorder && navigator.mediaDevices?.getUserMedia);
+        },
+        formatDuration(s) {
+            return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+        },
+        async startRecording() {
+            if (this.recording || !this.active) return;
+            if (!window.isSecureContext) {
+                window.toast('Voice notes need the site to open over https://', 'error');
+                return;
+            }
+            try {
+                voice.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+            } catch (e) {
+                window.toast(e.name === 'NotAllowedError' ? 'Allow microphone access in your browser to record voice notes.' : 'No microphone found.', 'error');
+                return;
+            }
+            // OGG/Opus is sent as-is; WebM / MP4 are converted to OGG on the server.
+            const types = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+            voice.mime = types.find((t) => MediaRecorder.isTypeSupported(t)) || '';
+            voice.chunks = [];
+            voice.recorder = new MediaRecorder(voice.stream, voice.mime ? { mimeType: voice.mime, audioBitsPerSecond: 32000 } : undefined);
+            voice.recorder.ondataavailable = (e) => e.data.size && voice.chunks.push(e.data);
+            voice.recorder.start(250);
+            this.recording = true;
+            this.recSeconds = 0;
+            this.recTimer = setInterval(() => {
+                this.recSeconds++;
+                if (this.recSeconds >= 300) this.stopAndSendVoice(); // 5 minutes max
+            }, 1000);
+        },
+        stopRecorder() {
+            return new Promise((resolve) => {
+                clearInterval(this.recTimer);
+                if (!voice.recorder || voice.recorder.state === 'inactive') return resolve();
+                voice.recorder.onstop = () => resolve();
+                voice.recorder.stop();
+            }).finally(() => {
+                voice.stream?.getTracks().forEach((t) => t.stop());
+                voice.stream = null;
+                this.recording = false;
+            });
+        },
+        async cancelRecording() {
+            await this.stopRecorder();
+            voice.chunks = [];
+        },
+        async stopAndSendVoice() {
+            if (!this.recording || this.sending) return;
+            const seconds = this.recSeconds;
+            await this.stopRecorder();
+            if (seconds < 1 || !voice.chunks.length) {
+                window.toast('Hold on a bit longer — the voice note was too short.', 'error');
+                return;
+            }
+            const type = voice.recorder?.mimeType || voice.mime || 'audio/webm';
+            const ext = type.includes('ogg') ? 'ogg' : type.includes('mp4') ? 'm4a' : 'webm';
+            const form = new FormData();
+            form.append('file', new Blob(voice.chunks, { type }), `voice-note.${ext}`);
+            form.append('voice', '1');
+            if (this.replyTo) form.append('reply_to_id', this.replyTo.id);
+            voice.chunks = [];
+            this.sending = true;
+            try {
+                const res = await http(this.url('media', { id: this.active.id }), { method: 'POST', body: form });
+                this.replyTo = null;
+                this.upsertMessage(res.message);
+                this.upsertConversation(res.conversation);
+            } catch (e) {
+                this.notify(e);
+                if (e.data?.reason === 'window_closed' && this.active) this.active.within_window = false;
+            } finally {
+                this.sending = false;
             }
         },
         async retry(msg) {

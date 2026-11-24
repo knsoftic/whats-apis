@@ -123,6 +123,22 @@ if [[ "${NODE_MAJOR:-0}" -lt 20 ]]; then
 fi
 ok "Node $(node -v), npm $(npm -v)"
 
+# ffmpeg turns voice notes recorded in Chrome / Android / iPhone into WhatsApp voice notes (OGG/Opus).
+if ! command -v ffmpeg >/dev/null; then
+  if command -v apt-get >/dev/null; then
+    (apt-get update -y && apt-get install -y ffmpeg) >/dev/null 2>&1 || true
+  elif command -v dnf >/dev/null; then
+    (dnf install -y epel-release && dnf install -y ffmpeg) >/dev/null 2>&1 || true
+  else
+    (yum install -y epel-release && yum install -y ffmpeg) >/dev/null 2>&1 || true
+  fi
+fi
+if command -v ffmpeg >/dev/null; then
+  ok "ffmpeg $(ffmpeg -version 2>/dev/null | head -n1 | awk '{print $3}') (voice notes)"
+else
+  warn "ffmpeg could not be installed automatically — voice notes from Chrome/Android/iPhone won't convert. Install it with your package manager."
+fi
+
 # -----------------------------------------------------------------------------
 step "4/12  Getting the code from $REPO ($BRANCH)"
 AUTH_REPO="$REPO"

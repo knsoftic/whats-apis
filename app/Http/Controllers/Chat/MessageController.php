@@ -46,16 +46,27 @@ class MessageController extends Controller
             'caption' => ['nullable', 'string', 'max:1024'],
             'as' => ['nullable', 'in:document'],
             'reply_to_id' => ['nullable', 'integer'],
+            'voice' => ['nullable', 'boolean'],
         ]);
+
+        // Recorded with the mic button → WhatsApp voice note (OGG/Opus).
+        $voice = $request->boolean('voice');
+        $file = $voice ? app(\App\Services\WhatsApp\VoiceNoteConverter::class)->prepare($request->file('file')) : $request->file('file');
 
         $message = $this->sender->sendMedia(
             $conversation,
-            $request->file('file'),
+            $file,
             $request->user(),
             $data['caption'] ?? null,
             $this->replyTarget($conversation, $data['reply_to_id'] ?? null),
-            $data['as'] ?? null,
+            $voice ? null : ($data['as'] ?? null),
+            $voice,
         );
+
+        // The converted temp file has been copied to storage by now.
+        if ($voice && $file->getRealPath() !== $request->file('file')->getRealPath()) {
+            @unlink((string) $file->getRealPath());
+        }
 
         return $this->created($message);
     }

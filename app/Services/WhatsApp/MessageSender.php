@@ -41,7 +41,7 @@ class MessageSender
         ], $replyTo);
     }
 
-    public function sendMedia(Conversation $conversation, UploadedFile $file, User $user, ?string $caption = null, ?Message $replyTo = null, ?string $asType = null): Message
+    public function sendMedia(Conversation $conversation, UploadedFile $file, User $user, ?string $caption = null, ?Message $replyTo = null, ?string $asType = null, bool $voice = false): Message
     {
         $this->ensureCanSendFreeForm($conversation);
 
@@ -59,7 +59,7 @@ class MessageSender
         return $this->createAndQueue($conversation, $user, [
             'type' => $type,
             'body' => $caption !== null && $caption !== '' ? Str::limit($caption, 1024, '') : null,
-            'content' => $type === 'document' ? ['filename' => $original] : null,
+            'content' => $type === 'document' ? ['filename' => $original] : ($voice && $type === 'audio' ? ['voice' => true] : null),
         ], $replyTo, [
             'type' => $type,
             'mime_type' => $mime,

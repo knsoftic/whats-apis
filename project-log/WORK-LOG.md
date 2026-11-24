@@ -178,3 +178,9 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Template builder: create (text/media header, variables with examples, footer, buttons, OTP) + delete, rule checks, live preview.
 - Fixes during work: CSV phone kept without a quote mark; `CurrentAccount` cache keyed by user.
 - **Result:** ✅ 277 tests pass (1411 assertions). Browser-checked locally; live Meta behaviour still to confirm on the server.
+
+### 2026-11-24 · Voice notes in chat
+- Mic button in the chat composer: record with timer, cancel, send. Sent as a WhatsApp voice note (OGG/Opus).
+- Chrome / Android / iPhone recordings are converted with ffmpeg on the server; the installer installs ffmpeg. Firefox OGG is sent as it is.
+- Fix during work: MediaRecorder / MediaStream kept outside Alpine's reactive state (proxies break native methods).
+- **Result:** ✅ 281 tests pass. Real microphone recording not testable in the in-app browser — check in Chrome on the live site.

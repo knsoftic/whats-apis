@@ -62,3 +62,15 @@ Also renders: images (inline), video player, audio / voice-note player, document
 | Breeze's `composer run dev` uses `pail`, which needs `pcntl` (not on Windows) | Dev script now runs server + queue + reverb + vite; `composer run dev:logs` for pail on Linux/macOS |
 | Blade `{{ }}` inside Alpine expressions | Escaped with `@{{` / HTML entities |
 | `*bold*.` (punctuation after) not bold | Formatter regex allows punctuation after the closing marker |
+
+## Update 2026-11-24 — Voice notes (mic button)
+- An empty composer shows a **mic** button (WhatsApp-style). Typing or attaching a file turns it into **Send**.
+- Tap the mic and allow the microphone. A bar shows a red dot, a timer, **Cancel** (🗑) and **Send**. Recordings stop automatically at 5 minutes; very short taps are ignored. A reply-to is kept.
+- The recording is sent as a **WhatsApp voice note** (OGG/Opus, mono) — it shows as “🎤 Voice message”.
+  - Firefox records OGG, which is sent as it is.
+  - Chrome, Edge, Android and iPhone record WebM or MP4, which **ffmpeg** converts on the server (`App\Services\WhatsApp\VoiceNoteConverter`, config `WHATSAPP_FFMPEG_PATH`).
+  - The installer now installs ffmpeg when it is missing (apt / dnf / yum), and warns if it can't.
+  - Without ffmpeg, the user gets a clear message instead of a broken file.
+- The microphone needs https:// (the live site) or localhost.
+- Tests: `VoiceNoteTest` (4) — WebM → ffmpeg → OGG voice note sent by media id; OGG passthrough; ffmpeg missing / unknown format → 422; mic button on the page. **281 passed.**
+- Browser check (local): mic ↔ send toggle, recording bar layout, and the friendly “allow microphone” message. The in-app browser blocks the microphone, so a real recording still needs testing in Chrome on the live site.

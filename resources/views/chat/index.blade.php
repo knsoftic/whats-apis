@@ -345,7 +345,22 @@
                                     <button type="button" @click="file = null" class="text-slate-400 hover:text-slate-600" aria-label="Remove file"><x-icon name="x" class="h-4 w-4" /></button>
                                 </div>
 
-                                <div class="flex items-end gap-2">
+                                {{-- Voice recording bar --}}
+                                <div x-show="recording" x-cloak class="flex items-center gap-3">
+                                    <button type="button" @click="cancelRecording()" class="rounded-full p-2.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10" title="Cancel" aria-label="Cancel voice note"><x-icon name="trash" /></button>
+                                    <div class="flex min-w-0 flex-1 items-center gap-3 rounded-2xl bg-white px-4 py-2.5 dark:bg-slate-800">
+                                        <span class="relative flex h-3 w-3"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span><span class="relative inline-flex h-3 w-3 rounded-full bg-rose-500"></span></span>
+                                        <span class="font-mono text-sm tabular-nums text-slate-700 dark:text-slate-200" x-text="formatDuration(recSeconds)">0:00</span>
+                                        <span class="truncate text-xs text-slate-500">Recording… tap send when done</span>
+                                    </div>
+                                    <button type="button" @click="stopAndSendVoice()" :disabled="sending"
+                                            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white shadow hover:bg-brand-700 disabled:opacity-50" aria-label="Send voice note">
+                                        <span x-show="sending" class="spinner"></span>
+                                        <x-icon name="send" class="h-5 w-5" x-show="!sending" />
+                                    </button>
+                                </div>
+
+                                <div x-show="!recording" class="flex items-end gap-2">
                                     <label class="cursor-pointer rounded-full p-2.5 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800" title="Attach file">
                                         <x-icon name="paperclip" />
                                         <input type="file" class="hidden" @change="pickFile($event)" accept=".jpg,.jpeg,.png,.mp4,.3gp,.aac,.amr,.mp3,.m4a,.ogg,.opus,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
@@ -354,7 +369,13 @@
                                     <textarea x-ref="composer" x-model="draft" rows="1" maxlength="4096" @keydown="onComposerKey($event)" @input="autoGrow($el)"
                                               :placeholder="file ? 'Add a caption…' : 'Type a message'"
                                               class="form-input max-h-40 min-h-[42px] flex-1 resize-none rounded-2xl py-2.5"></textarea>
-                                    <button type="button" @click="send()" :disabled="sending || (!draft.trim() && !file)"
+                                    {{-- Empty composer → mic (voice note); otherwise → send --}}
+                                    <button type="button" x-show="!draft.trim() && !file && canRecord()" @click="startRecording()" :disabled="sending"
+                                            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white shadow hover:bg-brand-700 disabled:opacity-50" title="Record a voice note" aria-label="Record a voice note">
+                                        <span x-show="sending" class="spinner"></span>
+                                        <x-icon name="microphone" class="h-5 w-5" x-show="!sending" />
+                                    </button>
+                                    <button type="button" x-show="draft.trim() || file || !canRecord()" @click="send()" :disabled="sending || (!draft.trim() && !file)"
                                             class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white shadow hover:bg-brand-700 disabled:opacity-50" aria-label="Send">
                                         <span x-show="sending" class="spinner"></span>
                                         <x-icon name="send" class="h-5 w-5" x-show="!sending" />

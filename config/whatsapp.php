@@ -65,6 +65,9 @@ return [
         'disk' => env('WHATSAPP_MEDIA_DISK', 'local'), // private disk — never public
         'directory' => 'whatsapp-media',
 
+        // ffmpeg converts browser voice recordings (WebM / MP4) into WhatsApp voice notes (OGG/Opus).
+        'ffmpeg' => env('WHATSAPP_FFMPEG_PATH', 'ffmpeg'),
+
         // Limits from Meta's "Supported media types" documentation (bytes).
         'max_size' => [
             'image' => 5 * 1024 * 1024,
