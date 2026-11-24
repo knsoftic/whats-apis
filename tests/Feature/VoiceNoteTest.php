@@ -84,18 +84,66 @@ class VoiceNoteTest extends TestCase
         $this->assertSame('audio/ogg', $attachment->mime_type);
         $this->assertStringEndsWith('.ogg', $attachment->path);
 
-        Http::assertSent(fn (Request $r) => str_contains($r->url(), '/messages') && $r['type'] === 'audio' && $r['audio']['id'] === 'MEDIA-VOICE-1');
+        // Mono OGG/Opus, shown as a voice message.
+        Process::assertRan(fn (PendingProcess $p) => in_array('-ac', $p->command, true) && $p->command[array_search('-ac', $p->command, true) + 1] === '1');
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), '/messages') && $r['type'] === 'audio' && $r['audio'] === ['id' => 'MEDIA-VOICE-1', 'voice' => true]);
     }
 
-    public function test_firefox_ogg_recording_is_sent_without_conversion(): void
+    private function fakeFfmpeg(): void
     {
-        Process::fake();
+        Process::fake(function (PendingProcess $process) {
+            $cmd = $process->command;
+            if (in_array('-i', $cmd, true)) {
+                file_put_contents(end($cmd), self::OGG); // ffmpeg writes the mono .ogg
+            }
 
-        $this->postVoice(UploadedFile::fake()->createWithContent('voice-note.ogg', self::OGG.str_repeat("\x00", 64)))->assertCreated()
-            ->assertJsonPath('message.type', 'audio');
+            return Process::result('ok');
+        });
+    }
 
-        Process::assertNothingRan();
+    private function stereoOgg(): string
+    {
+        return str_replace("OpusHead\x01\x01", "OpusHead\x01\x02", self::OGG).str_repeat("\x00", 64);
+    }
+
+    public function test_firefox_ogg_is_re_encoded_to_mono_when_ffmpeg_is_available(): void
+    {
+        $this->fakeFfmpeg();
+
+        $this->postVoice(UploadedFile::fake()->createWithContent('voice-note.ogg', $this->stereoOgg()))->assertCreated();
+
+        Process::assertRan(fn (PendingProcess $p) => in_array('-i', $p->command, true) && in_array('-ac', $p->command, true));
         $this->assertTrue(Message::firstOrFail()->content['voice']);
+    }
+
+    public function test_without_ffmpeg_only_mono_ogg_is_sent(): void
+    {
+        Process::fake(['*' => Process::result(exitCode: 127)]);
+
+        $this->postVoice(UploadedFile::fake()->createWithContent('voice-note.ogg', $this->stereoOgg()))->assertStatus(422);
+        $this->assertDatabaseCount('messages', 0);
+
+        $this->postVoice(UploadedFile::fake()->createWithContent('voice-note.ogg', self::OGG.str_repeat("\x00", 64)))->assertCreated();
+        $this->assertTrue(Message::firstOrFail()->content['voice']);
+    }
+
+    public function test_retry_re_encodes_an_older_failed_voice_note(): void
+    {
+        $this->fakeFfmpeg();
+        Storage::disk('local')->put('whatsapp-media/old/voice.ogg', 'old-stereo-bytes');
+        $message = Message::factory()->create([
+            'whatsapp_account_id' => $this->account->id, 'conversation_id' => $this->conversation->id, 'contact_id' => $this->conversation->contact_id,
+            'direction' => Message::OUT, 'type' => 'audio', 'status' => Message::STATUS_FAILED, 'content' => ['voice' => true], 'body' => null,
+        ]);
+        $message->attachments()->create(['type' => 'audio', 'mime_type' => 'audio/ogg', 'file_name' => 'voice-note.ogg', 'disk' => 'local', 'path' => 'whatsapp-media/old/voice.ogg', 'wa_media_id' => 'OLD-MEDIA', 'download_status' => 'downloaded']);
+
+        $this->actingAs($this->agent)->postJson("/chat/messages/{$message->id}/retry")->assertOk();
+
+        $attachment = $message->attachments()->firstOrFail();
+        $this->assertSame('whatsapp-media/old/voice-mono.ogg', $attachment->path);
+        $this->assertSame('MEDIA-VOICE-1', $attachment->wa_media_id); // uploaded again
+        Storage::disk('local')->assertExists('whatsapp-media/old/voice-mono.ogg');
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), '/messages') && ($r['audio']['voice'] ?? false) === true);
     }
 
     public function test_clear_error_when_ffmpeg_is_missing_or_the_format_is_unknown(): void

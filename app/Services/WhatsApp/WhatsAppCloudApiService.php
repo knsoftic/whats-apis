@@ -222,9 +222,10 @@ class WhatsAppCloudApiService
         return $this->sendMessage($to, ['type' => 'video', 'video' => self::mediaObject($media, $caption)], $replyTo);
     }
 
-    public function sendAudioMessage(string $to, array $media, ?string $replyTo = null): array
+    /** $voice = true → shown as a voice message (OGG/Opus mono only). */
+    public function sendAudioMessage(string $to, array $media, ?string $replyTo = null, bool $voice = false): array
     {
-        return $this->sendMessage($to, ['type' => 'audio', 'audio' => self::mediaObject($media)], $replyTo);
+        return $this->sendMessage($to, ['type' => 'audio', 'audio' => self::mediaObject($media) + ($voice ? ['voice' => true] : [])], $replyTo);
     }
 
     public function sendDocumentMessage(string $to, array $media, ?string $caption = null, ?string $filename = null, ?string $replyTo = null): array

@@ -15,6 +15,7 @@ use App\Models\WhatsAppAccount;
 use App\Services\ActivityLogger;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -135,6 +136,33 @@ class MessageSender
     /**
      * Re-queue a failed message (same content, new attempt).
      */
+    private function refreshVoiceNote(Message $message): void
+    {
+        $attachment = $message->attachments()->first();
+
+        if (! $attachment?->path || ! Storage::disk($attachment->disk)->exists($attachment->path)) {
+            return;
+        }
+
+        $new = app(VoiceNoteConverter::class)->reencode(Storage::disk($attachment->disk)->path($attachment->path));
+
+        if (! $new) {
+            return; // no ffmpeg — retry as it is
+        }
+
+        $path = preg_replace('/\.[^.\/]+$/', '', $attachment->path).'-mono.ogg';
+        Storage::disk($attachment->disk)->put($path, (string) file_get_contents($new));
+        @unlink($new);
+
+        $attachment->forceFill([
+            'path' => $path,
+            'mime_type' => 'audio/ogg',
+            'file_name' => 'voice-note.ogg',
+            'size' => Storage::disk($attachment->disk)->size($path),
+            'wa_media_id' => null, // upload the fixed file
+        ])->save();
+    }
+
     public function retry(Message $message): Message
     {
         if ($message->direction !== Message::OUT || $message->status !== Message::STATUS_FAILED) {
@@ -146,6 +174,11 @@ class MessageSender
         }
 
         $this->planGate->ensureCanSend($message->account);
+
+        // Voice notes from before the mono fix → re-encode the stored file and upload it again.
+        if ($message->type === 'audio' && ($message->content['voice'] ?? false)) {
+            $this->refreshVoiceNote($message);
+        }
 
         $message->forceFill([
             'status' => Message::STATUS_PENDING,

@@ -190,3 +190,11 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Cause: our security header `Permissions-Policy: microphone=()` disabled the microphone for the whole site, so the browser refused without a prompt.
 - Fix: `microphone=(self)` (camera and location stay off). Clearer errors: the site still blocks it (needs the update) / blocked in the browser (🔒 → Site settings → Microphone → Allow) / no mic / mic busy.
 - Verified locally: page reports microphone allowed, header test added. ✅ Tests pass.
+
+### 2026-11-24 · Fix: voice note failed — “Media file scrutiny … mediaEngineStatus: 0”
+- Live: the voice note was uploaded but Meta failed it (error 131053).
+- Meta's audio docs: voice messages must be **OGG + Opus + mono**, sent with `"voice": true`. Files over 512 KB show a download icon instead of play.
+- Cause: some recordings reached Meta as stereo. Firefox OGG was passed through unchanged, and the ffmpeg fallback only copied the stream.
+- Fix: with ffmpeg, **every** recording is re-encoded to mono Opus 48 kHz, 24 kbit/s, no metadata. The fallback is ffmpeg's built-in Opus encoder; there is no more stream copy. Without ffmpeg, only an OGG that is already mono is accepted.
+- Audio is now sent with `voice: true`. **Retry** on an older failed voice note re-encodes the stored file and uploads it again.
+- **Result:** ✅ 283 tests pass (VoiceNoteTest 6).
