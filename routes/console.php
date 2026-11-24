@@ -26,6 +26,11 @@ Artisan::command('whatsapp:check-accounts {--id= : Only this account id}', funct
     $this->info("Checked {$accounts->count()} account(s).");
 })->purpose('Re-validate WhatsApp Cloud API credentials of all active accounts');
 
+Artisan::command('whatsapp:send-followups', function (App\Services\WhatsApp\FollowUpService $followUps) {
+    $sent = $followUps->sendDue();
+    $this->info("Queued {$sent} follow-up message(s).");
+})->purpose('Send the automatic follow-up to chats whose 24-hour window is about to close');
+
 Artisan::command('whatsapp:webhooks', function () {
     $accounts = WhatsAppAccount::orderBy('id')->get();
 
@@ -113,6 +118,9 @@ Artisan::command('payments:sync', function (App\Services\Payments\PaymentService
 */
 
 Schedule::command('payments:sync')->everyFiveMinutes()->withoutOverlapping();
+
+// Follow-up message before the 24-hour WhatsApp window closes (per-number setting).
+Schedule::command('whatsapp:send-followups')->everyFiveMinutes()->withoutOverlapping();
 
 // Detect expired / revoked tokens early (does not send any message).
 Schedule::command('whatsapp:check-accounts')->hourly()->withoutOverlapping();

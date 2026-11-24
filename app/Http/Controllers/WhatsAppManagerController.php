@@ -22,7 +22,7 @@ use Illuminate\View\View;
  */
 class WhatsAppManagerController extends Controller
 {
-    public const TABS = ['health' => 'Number health', 'profile' => 'Business profile', 'security' => 'Two-step PIN', 'blocked' => 'Blocked customers', 'charges' => 'Meta charges'];
+    public const TABS = ['health' => 'Number health', 'followup' => '24h follow-up', 'profile' => 'Business profile', 'security' => 'Two-step PIN', 'blocked' => 'Blocked customers', 'charges' => 'Meta charges'];
 
     public const VERTICALS = [
         'OTHER' => 'Other', 'AUTO' => 'Automotive', 'BEAUTY' => 'Beauty, spa & salon', 'APPAREL' => 'Clothing & apparel', 'EDU' => 'Education',
@@ -47,6 +47,12 @@ class WhatsAppManagerController extends Controller
             'profile' => $this->profileData($account),
             'blocked' => ['blocked' => Contact::where('whatsapp_account_id', $account->id)->whereNotNull('blocked_at')->orderByDesc('blocked_at')->paginate(25)],
             'charges' => $this->chargesData($request, $account),
+            'followup' => [
+                'defaultMessage' => \App\Services\WhatsApp\FollowUpService::DEFAULT_MESSAGE,
+                'sentWeek' => Message::where('whatsapp_account_id', $account->id)->where('content->followup', true)->where('created_at', '>=', now()->subDays(7))->count(),
+                'dueNow' => $account->followup_enabled ? app(\App\Services\WhatsApp\FollowUpService::class)->dueConversations($account)->count() : 0,
+                'recent' => Message::with('contact:id,name,profile_name,phone')->where('whatsapp_account_id', $account->id)->where('content->followup', true)->latest('id')->limit(10)->get(),
+            ],
             default => [],
         });
     }
@@ -163,6 +169,34 @@ class WhatsAppManagerController extends Controller
         }
 
         return $detected;
+    }
+
+    // ------------------------------------------------------------------ 24h follow-up
+
+    public function saveFollowUp(Request $request, WhatsAppAccount $account): RedirectResponse
+    {
+        $this->authorize('update', $account);
+        $request->merge(['enabled' => $request->boolean('enabled'), 'skip_closed' => $request->boolean('skip_closed')]);
+
+        $data = $request->validate([
+            'enabled' => ['boolean'],
+            'after_minutes' => ['required', 'integer', 'min:'.\App\Services\WhatsApp\FollowUpService::MIN_AFTER_MINUTES, 'max:'.\App\Services\WhatsApp\FollowUpService::MAX_AFTER_MINUTES],
+            'message' => ['nullable', 'required_if:enabled,true', 'string', 'max:1024'],
+            'skip_closed' => ['boolean'],
+        ], ['message.required_if' => 'Write the follow-up message.', 'after_minutes.max' => 'Send it at least 30 minutes before the 24-hour window closes (max 23.5 hours).']);
+
+        $account->forceFill([
+            'followup_enabled' => $data['enabled'],
+            'followup_after_minutes' => (int) $data['after_minutes'],
+            'followup_message' => trim((string) ($data['message'] ?? '')) ?: null,
+            'followup_skip_closed' => $data['skip_closed'],
+        ])->save();
+
+        $this->logger->log('account.followup_updated', 'Updated the 24h follow-up of '.$account->name, $account, ['enabled' => $data['enabled'], 'after_minutes' => (int) $data['after_minutes']], $account->id);
+
+        return redirect()->route('accounts.manage', [$account, 'followup'])->with('success', $data['enabled']
+            ? 'Follow-up is on — customers get it automatically '.round($data['after_minutes'] / 60, 1).' hours after their last message.'
+            : 'Follow-up is off.');
     }
 
     // ------------------------------------------------------------------ two-step PIN

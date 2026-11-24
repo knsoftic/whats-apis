@@ -205,3 +205,14 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Fix 1: **adaptive bitrate.** Encode at 24 kbit/s; if the file is over 480 KB, re-encode at a lower bitrate (minimum 8 kbit/s), so a 5-minute note stays under 512 KB.
 - Fix 2: **automatic fallback.** If Meta still refuses a voice note (131053), the same recording is resent **once** as plain audio (AAC .m4a, without the voice flag), so it still reaches the customer. There is no loop.
 - **Result:** ✅ 285 tests pass (VoiceNoteTest 8). Not yet confirmed against Meta live.
+
+### 2026-11-24 · 24h follow-up message
+- WhatsApp Manager → **24h follow-up** tab (per number). Settings:
+  - on/off switch;
+  - send after 20 / 21 / 22 / **23** / 23.5 hours from the customer's last message;
+  - the message, with {{contact_name}}, {{business_name}}, {{phone}};
+  - skip closed chats.
+  - The tab also has a live preview, counts (sent in 7 days / due now) and the last follow-ups.
+- `whatsapp:send-followups` runs every 5 minutes (scheduler). It sends **once per customer message**, only while at least 10 minutes of the window remain. It skips opted-out / blocked contacts, disabled numbers and suspended owners, and respects plan limits. In chat it shows as “⏰ Auto follow-up”.
+- Checked locally: turned it on in the browser and saved; a real command run on a demo chat 23 h 05 m old queued the follow-up with the contact's name. Demo data restored afterwards.
+- **Result:** ✅ 290 tests pass (FollowUpTest 5).

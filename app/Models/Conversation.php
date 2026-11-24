@@ -40,6 +40,8 @@ class Conversation extends Model
             'unread_count' => 'integer',
             'last_message_at' => 'datetime',
             'last_inbound_at' => 'datetime',
+            'followup_sent_at' => 'datetime',
+            'followup_for_inbound_at' => 'datetime',
             'bot_paused_until' => 'datetime',
             'bot_state' => 'array',
         ];

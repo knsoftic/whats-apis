@@ -29,9 +29,9 @@ class MessageResource extends JsonResource
             'error_code' => $this->error_code,
             'error_message' => $this->error_message,
             'timestamp' => $time?->toIso8601String(),
-            'sent_by' => ($this->content['bot_flow_id'] ?? null)
+            'sent_by' => ($this->content['followup'] ?? false) ? '⏰ Auto follow-up' : (($this->content['bot_flow_id'] ?? null)
                 ? '🤖 Bot · '.($this->content['bot_flow'] ?? 'flow')
-                : $this->whenLoaded('sentBy', fn () => $this->sentBy?->name),
+                : $this->whenLoaded('sentBy', fn () => $this->sentBy?->name)),
             'reply_to' => $this->whenLoaded('replyTo', fn () => $this->replyTo ? [
                 'id' => $this->replyTo->id,
                 'direction' => $this->replyTo->direction,

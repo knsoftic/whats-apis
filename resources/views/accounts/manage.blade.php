@@ -1,6 +1,6 @@
 <x-app-layout title="WhatsApp Manager">
     @php
-        $icons = ['health' => 'activity', 'profile' => 'user', 'security' => 'lock', 'blocked' => 'x-circle', 'charges' => 'chart'];
+        $icons = ['health' => 'activity', 'followup' => 'clock', 'profile' => 'user', 'security' => 'lock', 'blocked' => 'x-circle', 'charges' => 'chart'];
     @endphp
     <div class="mx-auto max-w-5xl">
         <x-page-header :title="'WhatsApp Manager · '.$account->name" :description="($account->display_phone_number ?: 'Phone Number ID '.$account->phone_number_id).($account->verified_name ? ' · '.$account->verified_name : '')">
@@ -100,6 +100,104 @@
                     @endforeach
                 </dl>
             </x-card>
+        @endif
+
+        {{-- =========================================================== 24H FOLLOW-UP --}}
+        @if ($tab === 'followup')
+            @php
+                $msg = old('message', $account->followup_message ?: $defaultMessage);
+                $after = (int) old('after_minutes', $account->followup_after_minutes ?: 1380);
+                $options = [1200 => '20 hours', 1260 => '21 hours', 1320 => '22 hours', 1380 => '23 hours (recommended)', 1410 => '23 hours 30 minutes'];
+                if (! isset($options[$after])) { $options[$after] = round($after / 60, 1).' hours'; ksort($options); }
+                $business = $account->verified_name ?: $account->name;
+            @endphp
+            <div class="mb-5 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-500/10 dark:text-sky-200">
+                WhatsApp lets you chat freely only for <strong>24 hours after the customer's last message</strong>. After that you can only send approved templates.
+                This sends one friendly message <strong>before the window closes</strong> — when the customer replies, a new 24-hour window opens.
+            </div>
+
+            <div class="grid gap-6 lg:grid-cols-5" x-data="{
+                enabled: @js((bool) old('enabled', $account->followup_enabled)), message: @js($msg), saving: false,
+                fill(t) { return t.replace(/\{\{\s*contact_name\s*\}\}/g, 'Ali').replace(/\{\{\s*business_name\s*\}\}/g, @js($business)).replace(/\{\{\s*phone\s*\}\}/g, '+92 300 1234567') },
+            }">
+                <form method="POST" action="{{ route('accounts.manage.followup', $account) }}" class="lg:col-span-3" @submit="saving = true">
+                    @csrf
+                    <x-card title="Automatic follow-up">
+                        <label class="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+                            <span>
+                                <span class="block font-medium text-slate-900 dark:text-white">Send a follow-up before the 24-hour window closes</span>
+                                <span class="text-xs text-slate-500">Runs automatically every 5 minutes for this WhatsApp number.</span>
+                            </span>
+                            <span class="relative inline-flex shrink-0">
+                                <input type="hidden" name="enabled" value="0">
+                                <input type="checkbox" name="enabled" value="1" class="peer sr-only" x-model="enabled">
+                                <span class="h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-emerald-500 dark:bg-slate-700"></span>
+                                <span class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+                            </span>
+                        </label>
+
+                        <div class="mt-5 grid gap-4" :class="enabled ? '' : 'opacity-60'">
+                            <div>
+                                <label class="form-label" for="after_minutes">Send it after the customer's last message</label>
+                                <select id="after_minutes" name="after_minutes" class="form-input">
+                                    @foreach ($options as $minutes => $label)
+                                        <option value="{{ $minutes }}" @selected($after === $minutes)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <p class="form-help">At 23 hours the customer still has 1 hour to reply inside the free window.</p>
+                            </div>
+                            <div>
+                                <label class="form-label" for="message">Follow-up message</label>
+                                <textarea id="message" name="message" rows="5" maxlength="1024" class="form-input" x-model="message"></textarea>
+                                <p class="form-help">
+                                    <span x-text="message.length"></span>/1024 · Insert:
+                                    @foreach (['contact_name', 'business_name', 'phone'] as $v)
+                                        <button type="button" class="mr-1 rounded bg-slate-100 px-1 font-mono text-[11px] hover:bg-brand-50 dark:bg-slate-800" @click="message += ' ' + '{' + '{' + '{{ $v }}' + '}' + '}'">{{ '{' }}{{ '{' }}{{ $v }}}}</button>
+                                    @endforeach
+                                </p>
+                                @error('message')<p class="form-error">{{ $message }}</p>@enderror
+                                @error('after_minutes')<p class="form-error">{{ $message }}</p>@enderror
+                            </div>
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="hidden" name="skip_closed" value="0">
+                                <input type="checkbox" name="skip_closed" value="1" class="rounded border-slate-300 text-brand-600" @checked(old('skip_closed', $account->followup_skip_closed))>
+                                Don't send to chats you marked as closed
+                            </label>
+                            <p class="text-xs text-slate-500">Never sent to people who opted out or are blocked. One follow-up per customer message — it doesn't repeat until they write again.</p>
+                        </div>
+                    </x-card>
+                    <div class="mt-4 flex justify-end">
+                        <x-button ::disabled="saving"><span x-show="saving" x-cloak class="spinner"></span> Save follow-up</x-button>
+                    </div>
+                </form>
+
+                <div class="space-y-5 lg:col-span-2">
+                    <div>
+                        <p class="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">Preview</p>
+                        <div class="chat-wallpaper rounded-2xl p-4">
+                            <div class="ml-auto max-w-[90%] rounded-xl rounded-tr-sm bg-chat-outLight px-3 py-2 text-[13px] leading-snug text-slate-800 shadow-sm dark:bg-chat-outDark dark:text-slate-100">
+                                <p class="mb-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">⏰ Auto follow-up</p>
+                                <p class="whitespace-pre-line" x-text="fill(message)"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <x-stat-card label="Sent (7 days)" :value="number_format($sentWeek)" icon="send" color="emerald" />
+                        <x-stat-card label="Due right now" :value="number_format($dueNow)" icon="clock" color="amber" />
+                    </div>
+                    <x-card title="Last follow-ups" :padding="false">
+                        @forelse ($recent as $m)
+                            <div class="flex items-center gap-3 border-t border-slate-100 px-4 py-2.5 text-sm first:border-0 dark:border-slate-800">
+                                <span class="min-w-0 flex-1 truncate">{{ $m->contact?->displayName() ?? '—' }}</span>
+                                <x-badge :color="$m->status === 'failed' ? 'red' : (in_array($m->status, ['delivered', 'read']) ? 'green' : 'slate')">{{ $m->status }}</x-badge>
+                                <span class="text-xs text-slate-400">{{ $m->created_at->diffForHumans() }}</span>
+                            </div>
+                        @empty
+                            <p class="px-4 py-4 text-sm text-slate-500">None sent yet.</p>
+                        @endforelse
+                    </x-card>
+                </div>
+            </div>
         @endif
 
         {{-- =========================================================== PROFILE --}}

@@ -55,6 +55,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('whatsapp-accounts/{account}/manage/app-id', [$manager, 'saveAppId'])->name('accounts.manage.app-id');
         Route::post('whatsapp-accounts/{account}/manage/pin', [$manager, 'updatePin'])->middleware('throttle:5,1')->name('accounts.manage.pin');
         Route::post('whatsapp-accounts/{account}/manage/rates', [$manager, 'saveRates'])->name('accounts.manage.rates');
+        Route::post('whatsapp-accounts/{account}/manage/followup', [$manager, 'saveFollowUp'])->name('accounts.manage.followup');
     });
 
     // ---- Block / unblock a customer on WhatsApp ------------------------------
