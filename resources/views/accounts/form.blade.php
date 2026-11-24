@@ -6,7 +6,7 @@
 <x-app-layout :title="$editing ? 'Edit WhatsApp account' : 'Add WhatsApp account'">
     <div class="mx-auto max-w-4xl">
         <x-page-header :title="$editing ? 'Edit '.$account->name : 'Add WhatsApp account'"
-                       description="Copy these values from developers.facebook.com → your app → WhatsApp → API Setup, and App Settings → Basic.">
+                       description="Copy these values from developers.facebook.com → your app → Use cases → Connect with customers through WhatsApp → Customize → API Setup, and App settings → Basic. Step-by-step guide: docs/META-SETUP.md.">
             <x-button variant="secondary" icon="arrow-left" :href="$editing ? route('accounts.show', $account) : route('accounts.index')">Back</x-button>
         </x-page-header>
 
@@ -33,13 +33,13 @@
                         <div>
                             <label class="form-label" for="graph_api_version">Meta Graph API version</label>
                             <input id="graph_api_version" name="graph_api_version" class="form-input font-mono" value="{{ old('graph_api_version', $account->graph_api_version) }}" required placeholder="v26.0">
-                            <p class="form-help">Default {{ config('whatsapp.default_graph_version') }}. Change only if Meta asks you to.</p>
+                            <p class="form-help">Default {{ config('whatsapp.default_graph_version') }} (still supported). Meta's newest is v27.0 — change only if Meta asks you to.</p>
                             @error('graph_api_version')<p class="form-error">{{ $message }}</p>@enderror
                         </div>
                     </div>
                 </x-card>
 
-                <x-card title="2. WhatsApp identifiers" subtitle="App Dashboard → WhatsApp → API Setup.">
+                <x-card title="2. WhatsApp identifiers" subtitle="App Dashboard → Use cases → Customize → API Setup (older apps: WhatsApp → API Setup).">
                     <div class="grid gap-5 sm:grid-cols-2">
                         <div>
                             <label class="form-label" for="waba_id">WhatsApp Business Account ID (WABA ID)</label>
@@ -103,7 +103,7 @@
                                     <button type="button" class="shrink-0 rounded-xl border border-slate-300 px-3 text-xs dark:border-slate-700"
                                             @click="verifyToken = Array.from(crypto.getRandomValues(new Uint8Array(20)), b => b.toString(16).padStart(2, '0')).join(''); showToken = true">Generate</button>
                                 </div>
-                                <p class="form-help">Any random string you choose. Paste the same value into Meta → WhatsApp → Configuration → Verify token.</p>
+                                <p class="form-help">Any random string you choose. Paste the same value into Meta → Use cases → Customize → Configuration → Verify token.</p>
                                 @error('webhook_verify_token')<p class="form-error">{{ $message }}</p>@enderror
                             </div>
                         </div>
@@ -115,7 +115,7 @@
                     $callbackUrl = $webhookUuid ? route('webhooks.whatsapp.verify', ['account' => $webhookUuid]) : null;
                 @endphp
                 @if ($callbackUrl)
-                    <x-card title="4. Webhook — paste into Meta" subtitle="developers.facebook.com → your app → WhatsApp → Configuration → Webhook → Edit.">
+                    <x-card title="4. Webhook — paste into Meta" subtitle="developers.facebook.com → your app → Use cases → Customize → Configuration → Webhook (older apps: WhatsApp → Configuration).">
                         @unless ($editing)
                             <input type="hidden" name="uuid" value="{{ $webhookUuid }}">
                             <div class="mb-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">

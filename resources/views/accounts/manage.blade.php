@@ -297,6 +297,7 @@
                     <div><x-button icon="lock">Change PIN</x-button></div>
                 </form>
                 <p class="mt-4 text-xs text-slate-500">The PIN is sent to Meta only — it is not stored in this app. Write it down somewhere safe.</p>
+                <p class="mt-2 text-xs text-slate-500">Note: since Sept–Oct 2026 Meta is removing the two-step PIN for eligible Cloud API numbers (the Two-step verification tab disappears in WhatsApp Manager). If Meta rejects the change, your number simply no longer uses a PIN.</p>
             </x-card>
         @endif
 

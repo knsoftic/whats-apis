@@ -55,22 +55,30 @@
         @endforeach
     </div>
 
-    @if ($account->isEmbeddedSignup() || $account->registration_status)
+    @php
+        // Manually added numbers: Meta reports platform_type CLOUD_API once registered (registration is API-only).
+        $platform = $account->phone_meta['platform_type'] ?? null;
+        $needsRegistration = ! $account->isEmbeddedSignup() && $platform !== null && $platform !== 'CLOUD_API';
+    @endphp
+    @if ($account->isEmbeddedSignup() || $account->registration_status || $needsRegistration)
         <div @class(['mt-4 flex flex-wrap items-center gap-3 rounded-2xl border px-5 py-4',
             'border-brand-200 bg-brand-50/60 dark:border-brand-900 dark:bg-brand-500/5' => in_array($account->registration_status, ['registered', 'coexistence', 'not_required'], true),
             'border-rose-200 bg-rose-50/60 dark:border-rose-900 dark:bg-rose-500/5' => $account->registration_status === 'failed',
             'border-slate-200 dark:border-slate-800' => ! $account->registration_status])>
             <div class="min-w-0 flex-1">
                 <p class="text-sm font-semibold text-slate-900 dark:text-white">
-                    <x-badge color="blue">Embedded Signup</x-badge>
+                    <x-badge color="blue">{{ $account->isEmbeddedSignup() ? 'Embedded Signup' : 'Manual' }}</x-badge>
                     <span class="ml-2">Cloud API registration:
-                        {{ match ($account->registration_status) { 'registered' => 'registered', 'coexistence' => 'WhatsApp Business app (coexistence)', 'failed' => 'not registered', default => 'unknown' } }}</span>
+                        {{ match (true) { $account->registration_status === 'registered' || ($platform === 'CLOUD_API' && ! $account->registration_status) => 'registered', $account->registration_status === 'coexistence' => 'WhatsApp Business app (coexistence)', $account->registration_status === 'failed' || $needsRegistration => 'not registered', default => 'unknown' } }}</span>
                 </p>
                 @if ($account->registration_message)
                     <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ $account->registration_message }}</p>
+                @elseif ($needsRegistration)
+                    <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">Meta says this number is not on the Cloud API yet (platform: {{ $platform }}). Register it once — messages can't be sent or received before that.</p>
                 @endif
+                <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">PIN: number already has two-step verification → enter that PIN; otherwise choose any 6 digits. Meta stopped using the PIN for eligible numbers (Sept–Oct 2026) — any 6 digits work then. Max 10 tries per 72 hours.</p>
             </div>
-            @if (! in_array($account->registration_status, ['registered', 'coexistence'], true))
+            @if (! in_array($account->registration_status, ['registered', 'coexistence'], true) && ! ($platform === 'CLOUD_API' && ! $account->registration_status))
                 <form method="POST" action="{{ route('accounts.register', $account) }}" class="flex items-end gap-2">
                     @csrf
                     <div>
@@ -112,7 +120,7 @@
             </div>
         </x-card>
         @else
-        <x-card title="Webhook setup in Meta" subtitle="App Dashboard → WhatsApp → Configuration → Webhook → Edit">
+        <x-card title="Webhook setup in Meta" subtitle="App Dashboard → Use cases → Customize → Configuration (older apps: WhatsApp → Configuration)">
             <div class="space-y-4 text-sm">
                 <div>
                     <p class="form-label">Callback URL</p>

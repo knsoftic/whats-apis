@@ -8,8 +8,8 @@
 |---|---|
 | **Project folder** | `C:\xampp\htdocs\whts api mi` |
 | **Log started** | 2026-11-19 10:41 |
-| **Last updated** | 2026-11-24 (bot trigger: Any message) |
-| **Overall status** | ✅ **14 phases done** · **300 automated tests passing** · live checks with real Meta / PKPay credentials still pending (need your accounts) |
+| **Last updated** | 2026-11-24 (manual Meta setup re-checked + register button) |
+| **Overall status** | ✅ **14 phases done** · **304 automated tests passing** · live checks with real Meta / PKPay credentials still pending (need your accounts) |
 
 ---
 

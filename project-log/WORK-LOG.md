@@ -270,3 +270,23 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Bots still pause in a chat for 60 min after an agent replies manually (unchanged), and still respect the plan's bot limits.
 - Checked in the in-app browser: picked the trigger (chip + help shown), added a Condition → Message type rule ("1. Message is voice note / audio" + Otherwise). Nothing saved.
 - **Result:** ✅ 300 tests pass (BotAnyMessageTest 5: all 7 message types, per-type replies, question/menu continuity, cooldown hand-over, builder save/validation).
+
+### 2026-11-24 · Manual Meta setup re-checked against Meta's current docs (+ register button for manual numbers)
+- Request: full links and steps in Roman Urdu for creating a fresh Meta app and attaching WhatsApp manually. If the method has changed, update the app and the docs too.
+- Read Meta's official docs, which moved in 2026 to `developers.facebook.com/documentation/business-messaging/whatsapp/…`. Changes found:
+  - WhatsApp menus now sit under **Use cases → Connect with customers through WhatsApp → Customize** (Quickstart / API Setup / Configuration);
+  - the WABA is also called "Messaging account ID";
+  - registration is **API-only** (`POST /{phone-id}/register`, at most 10 tries per 72 h);
+  - the 6-digit PIN is deprecated for eligible numbers (Sept–Oct 2026), but a valid 6 digits must still be sent;
+  - examples now use Graph **v27.0**;
+  - no App Review is needed for your own WABA;
+  - publishing is done from the left menu **Publish**.
+- App fix: manually added numbers that Meta reports as not on the Cloud API (`platform_type` ≠ `CLOUD_API`) now show the **Register number** card (badge "Manual"), with PIN help. The API check adds a warning "not registered on the Cloud API yet". Before this fix, the card appeared only for Embedded Signup numbers.
+- Help texts updated in these places:
+  - the account form (new menu paths, a note on v27.0);
+  - the account page webhook card;
+  - the WhatsApp Manager PIN tab (PIN deprecation note).
+  - The Graph default stays v26.0, which is still supported.
+- `docs/META-SETUP.md` Option B was rewritten as 13 steps with direct links (business portfolio, create app, WABA + number, IDs, App Secret, System User token, add in app, register, webhook, subscribe, publish, payment + test). Troubleshooting rows added.
+- The aaPanel install guide (Claude Doc) Step 7.2–7.3 was replaced with the same 12 steps in **Roman Urdu** (7.2–7.13).
+- **Result:** ✅ 304 tests pass (ManualRegistrationTest 4).

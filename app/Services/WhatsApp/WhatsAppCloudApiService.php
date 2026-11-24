@@ -131,6 +131,11 @@ class WhatsAppCloudApiService
             $warnings[] = 'Phone number is not verified yet (code_verification_status = NOT_VERIFIED).';
         }
 
+        // Numbers added in WhatsApp Manager / API Setup must still be registered through the API.
+        if (isset($phone['platform_type']) && $phone['platform_type'] !== 'CLOUD_API') {
+            $warnings[] = 'Number is not registered on the Cloud API yet (platform_type = '.$phone['platform_type'].') — click “Register number” on the account page.';
+        }
+
         if (($phone['name_status'] ?? null) && ! in_array($phone['name_status'], ['APPROVED', 'AVAILABLE_WITHOUT_REVIEW'], true)) {
             $warnings[] = "Display name status is {$phone['name_status']}.";
         }
