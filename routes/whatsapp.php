@@ -68,6 +68,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('chat')->name('chat.')->middleware('permission:'.P::CHATS_VIEW)->group(function () {
         Route::get('/', [ChatController::class, 'index'])->name('index');
         Route::get('conversations', [ChatController::class, 'conversations'])->name('conversations');
+        Route::get('unread-summary', [ChatController::class, 'unreadSummary'])->middleware('throttle:120,1')->name('unread-summary');
         Route::get('conversations/{conversation}', [ChatController::class, 'show'])->name('show');
         Route::post('conversations/{conversation}/read', [ChatController::class, 'markRead'])->name('read');
         Route::post('conversations/{conversation}/unread', [ChatController::class, 'markUnread'])->name('unread');

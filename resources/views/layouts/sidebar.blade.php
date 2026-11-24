@@ -3,7 +3,7 @@
 
     $nav = [
         ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard', 'icon' => 'home', 'can' => P::DASHBOARD_VIEW],
-        ['label' => 'Chats', 'route' => 'chat.index', 'active' => 'chat.*', 'icon' => 'chat', 'can' => P::CHATS_VIEW],
+        ['label' => 'Chats', 'route' => 'chat.index', 'active' => 'chat.*', 'icon' => 'chat', 'can' => P::CHATS_VIEW, 'badge' => 'chats'],
         ['label' => 'Contacts', 'route' => 'contacts.index', 'active' => 'contacts.*', 'icon' => 'contacts', 'can' => P::CONTACTS_VIEW],
         ['label' => 'Leads', 'route' => 'leads.index', 'active' => 'leads.*', 'icon' => 'users', 'can' => P::CONTACTS_VIEW],
         ['label' => 'Message Templates', 'route' => 'templates.index', 'active' => 'templates.*', 'icon' => 'template', 'can' => P::TEMPLATES_VIEW],
@@ -30,6 +30,8 @@
     // Customers manage their own numbers from the main menu; the Administration block is for staff.
     $admin = $isCustomer ? [] : $visible($admin);
     $badges = ['contact' => collect($admin)->contains('badge', 'contact') ? \App\Models\ContactMessage::unread()->count() : 0];
+    // Inbox counters (unread chats / messages, waiting, open, total) — refreshed live by the chatCounts component.
+    $chatCounts = collect($nav)->contains('badge', 'chats') ? \App\Support\ChatCounts::forUser(auth()->user())['total'] : null;
 @endphp
 
 <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-5 dark:border-slate-800">
@@ -49,6 +51,10 @@
     <div class="space-y-1">
         @foreach ($nav as $item)
             @php $active = request()->routeIs($item['active']); @endphp
+            @if (($item['badge'] ?? null) === 'chats' && $chatCounts !== null)
+                @include('layouts.partials.sidebar-chats', ['item' => $item, 'active' => $active, 'counts' => $chatCounts])
+                @continue
+            @endif
             <a href="{{ route($item['route']) }}" @class([
                 'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition',
                 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' => $active,

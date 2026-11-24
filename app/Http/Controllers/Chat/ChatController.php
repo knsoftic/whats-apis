@@ -11,6 +11,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\MessageTemplate;
 use App\Models\WhatsAppAccount;
+use App\Support\ChatCounts;
 use App\Support\CurrentAccount;
 use App\Support\Permissions;
 use Illuminate\Database\Eloquent\Builder;
@@ -51,6 +52,7 @@ class ChatController extends Controller
                 'operational' => $a->isOperational(),
             ])->values(),
             'accountId' => $account?->id,
+            'filter' => in_array($request->query('filter'), ['unread', 'waiting', 'open', 'closed'], true) ? $request->query('filter') : 'all',
             'conversationId' => $selected?->id,
             'can' => [
                 'send' => $request->user()->can(Permissions::CHATS_SEND),
@@ -66,7 +68,7 @@ class ChatController extends Controller
         $data = $request->validate([
             'account_id' => ['required', 'integer'],
             'q' => ['nullable', 'string', 'max:100'],
-            'filter' => ['nullable', 'in:all,unread,open,closed'],
+            'filter' => ['nullable', 'in:all,unread,waiting,open,closed'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
@@ -78,6 +80,7 @@ class ChatController extends Controller
             ->where('whatsapp_account_id', $account->id)
             ->when($term !== '', fn (Builder $q) => $q->whereHas('contact', fn (Builder $c) => $c->search($term)))
             ->when(($data['filter'] ?? 'all') === 'unread', fn (Builder $q) => $q->where('unread_count', '>', 0))
+            ->when(($data['filter'] ?? 'all') === 'waiting', fn (Builder $q) => $q->where('status', Conversation::STATUS_OPEN)->where('last_message_direction', Message::IN))
             ->when(($data['filter'] ?? 'all') === 'open', fn (Builder $q) => $q->where('status', Conversation::STATUS_OPEN))
             ->when(($data['filter'] ?? 'all') === 'closed', fn (Builder $q) => $q->where('status', Conversation::STATUS_CLOSED))
             ->orderByRaw('last_message_at IS NULL')
@@ -88,8 +91,16 @@ class ChatController extends Controller
         return response()->json([
             'data' => ConversationResource::collection($page->getCollection())->resolve(),
             'has_more' => $page->hasMorePages(),
-            'unread_total' => Conversation::where('whatsapp_account_id', $account->id)->where('unread_count', '>', 0)->count(),
+            'unread_total' => ($counts = ChatCounts::forUser($request->user()))['accounts'][$account->id]['unread'] ?? 0,
+            'counts' => $counts['accounts'][$account->id] ?? ChatCounts::EMPTY,
+            'summary' => $counts, // all numbers → sidebar badge + number switcher
         ]);
+    }
+
+    /** Sidebar badge: unread chats / messages, waiting, open, closed — per number and total. */
+    public function unreadSummary(Request $request): JsonResponse
+    {
+        return response()->json(ChatCounts::forUser($request->user()));
     }
 
     public function show(Request $request, Conversation $conversation): JsonResponse

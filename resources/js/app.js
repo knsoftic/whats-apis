@@ -2,6 +2,7 @@ import './bootstrap';
 
 import Alpine from 'alpinejs';
 import chatApp from './chat';
+import chatCounts from './chat-counts';
 import embeddedSignup from './embedded-signup';
 import botBuilder from './bot-builder';
 import landingEditor from './landing-editor';
@@ -9,6 +10,7 @@ import landingEditor from './landing-editor';
 window.Alpine = Alpine;
 
 Alpine.data('chatApp', chatApp);
+Alpine.data('chatCounts', chatCounts);
 Alpine.data('embeddedSignup', embeddedSignup);
 Alpine.data('botBuilder', botBuilder);
 Alpine.data('landingEditor', landingEditor);

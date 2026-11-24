@@ -83,3 +83,5 @@ Tests: 158 passed (613 assertions)   Duration: 19.4 s   Failed: 0
 | M18 | Live: health refresh, profile + photo, PIN, block, template review, Meta figures | ⏳ | Needs a connected number on the server |
 | M19 | Chat mic button ↔ send toggle, recording bar, “allow microphone” message | ✅ | In-app browser, 2026-11-24 |
 | M20 | Record a real voice note in Chrome/phone on the live site → arrives as a voice message on WhatsApp | ⏳ | Needs https site + ffmpeg (installed by the update) |
+| M21 | Chat: live mode shows new message instantly; Reverb stopped → auto-refresh within 5 s; sidebar badge, mini counters, tab counts, "(N)" title | ✅ | In-app browser, 2026-11-24 |
+| M22 | Live site: `php artisan whatsapp:realtime-check` all green after the update | ⏳ | Run on the server after the update |

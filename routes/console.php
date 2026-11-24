@@ -54,6 +54,103 @@ Artisan::command('whatsapp:webhooks', function () {
     }
 })->purpose('Show each WhatsApp account\'s webhook Callback URL and verify token (paste them into Meta)');
 
+Artisan::command('whatsapp:realtime-check', function () {
+    // Live chat updates need: same Reverb key in .env, in the built JS and in the running
+    // Reverb process, Reverb listening on REVERB_SERVER_PORT, and Nginx proxying /app + /apps.
+    $fail = 0;
+    $ok = fn (string $m) => $this->line("  <info>✔</info> {$m}");
+    $bad = function (string $m, string $fix = '') use (&$fail) {
+        $fail++;
+        $this->line("  <error>✘</error> {$m}");
+        if ($fix !== '') {
+            $this->line("    → {$fix}");
+        }
+    };
+
+    $driver = (string) config('broadcasting.default');
+    if ($driver !== 'reverb') {
+        $bad("BROADCAST_CONNECTION is \"{$driver}\" (live updates are off).", 'Set BROADCAST_CONNECTION=reverb in .env, then: php artisan optimize');
+
+        return 1;
+    }
+
+    $cfg = config('broadcasting.connections.reverb');
+    $key = (string) ($cfg['key'] ?? '');
+    $appId = (string) ($cfg['app_id'] ?? '');
+    $secret = (string) ($cfg['secret'] ?? '');
+    if ($key === '' || $appId === '' || $secret === '') {
+        $bad('REVERB_APP_ID / REVERB_APP_KEY / REVERB_APP_SECRET are missing in .env.', 'Run: php artisan reverb:install');
+
+        return 1;
+    }
+    $ok("Broadcast driver reverb, app key {$key}");
+
+    // 1. The Reverb server config lists the same app.
+    $apps = collect(config('reverb.apps.apps', []));
+    $apps->contains(fn ($a) => (string) ($a['key'] ?? '') === $key && (string) ($a['app_id'] ?? '') === $appId)
+        ? $ok('config/reverb.php serves this app')
+        : $bad('config/reverb.php does not list this app key.', 'php artisan optimize:clear && php artisan optimize');
+
+    // 2. The browser bundle was built with the same key.
+    $built = collect(glob(public_path('build/assets/*.js')) ?: [])
+        ->map(fn ($f) => preg_match('/broadcaster:"reverb",key:"([^"]*)"/', (string) file_get_contents($f), $m) ? $m[1] : null)
+        ->filter()->unique()->values();
+    if ($built->isEmpty()) {
+        $bad('No Reverb key found in public/build (frontend not built?).', 'npm run build');
+    } elseif (! $built->contains($key)) {
+        $bad('The built JavaScript uses another key ('.$built->implode(', ').').', 'npm run build   (it reads REVERB_APP_KEY from .env)');
+    } else {
+        $ok('Built JavaScript uses the same key');
+    }
+
+    // 3. Reverb is listening locally, and it is OUR Reverb (knows this app id + secret).
+    $port = (int) config('reverb.servers.reverb.port', 8080);
+    $sock = @fsockopen('127.0.0.1', $port, $errno, $errstr, 2);
+    if (! $sock) {
+        $bad("Nothing is listening on 127.0.0.1:{$port}.", 'supervisorctl restart kn-whatsapp-reverb   (or: php artisan reverb:start)');
+    } else {
+        fclose($sock);
+        $ok("Port {$port} is open");
+        try {
+            (new Pusher\Pusher($key, $secret, $appId, ['host' => '127.0.0.1', 'port' => $port, 'scheme' => 'http', 'useTLS' => false, 'timeout' => 5]))->get('/channels', [], true);
+            $ok("Reverb on port {$port} accepts this app");
+        } catch (Throwable $e) {
+            $owner = '';
+            if (PHP_OS_FAMILY === 'Linux') {
+                $ss = Illuminate\Support\Facades\Process::run(['sh', '-c', "ss -ltnp 'sport = :{$port}' 2>/dev/null"])->output();
+                if (preg_match('/pid=(\d+)/', $ss, $m) && is_readable("/proc/{$m[1]}/cmdline")) {
+                    $owner = trim(str_replace("\0", ' ', (string) file_get_contents("/proc/{$m[1]}/cmdline")));
+                }
+            }
+            $bad(
+                "The server on port {$port} rejects this app (".Illuminate\Support\Str::limit($e->getMessage(), 120).').'.($owner ? " Process: {$owner}" : ''),
+                match (true) {
+                    str_contains($owner, base_path('artisan')) => 'Our Reverb runs with an old config → php artisan optimize && supervisorctl restart kn-whatsapp-reverb',
+                    $owner !== '' => "Another program uses port {$port} → run the installer again (it moves Reverb to a free port).",
+                    default => "Restart Reverb so it reloads .env: php artisan optimize && supervisorctl restart kn-whatsapp-reverb. Still failing → another program uses port {$port}: run the installer again (it moves Reverb to a free port).",
+                }
+            );
+        }
+    }
+
+    // 4. End to end through Nginx (the same path the browser uses): publish a test event.
+    try {
+        Illuminate\Support\Facades\Broadcast::connection('reverb')->broadcast(['kn-realtime-check'], 'ping', ['at' => now()->toIso8601String()]);
+        $ok('Test event published via '.($cfg['options']['scheme'] ?? 'https').'://'.($cfg['options']['host'] ?? '?').':'.($cfg['options']['port'] ?? '').' (Nginx → Reverb)');
+    } catch (Throwable $e) {
+        $bad('Publishing through '.($cfg['options']['host'] ?? '?').' failed: '.Illuminate\Support\Str::limit($e->getMessage(), 160), preg_match('/No matching application|Application does not exist|Invalid auth signature/i', $e->getMessage())
+            ? 'Nginx reaches a Reverb that does not know this app (old config or another program on the port) — see the fix above.'
+            : 'Check the Nginx "location ~ ^/(app|apps)/" proxy block and REVERB_HOST / REVERB_PORT / REVERB_SCHEME.');
+    }
+
+    $this->newLine();
+    $fail === 0
+        ? $this->info('Realtime OK — chats update instantly.')
+        : $this->warn("{$fail} problem(s). Until fixed, the chat page still auto-refreshes every 5 seconds.");
+
+    return $fail === 0 ? 0 : 1;
+})->purpose('Check live chat updates (Reverb key, build, port, Nginx proxy)');
+
 Artisan::command('admin:reset-password {email}', function (string $email) {
     $user = \App\Models\User::where('email', strtolower(trim($email)))->first();
 

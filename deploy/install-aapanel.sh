@@ -31,6 +31,9 @@ fi
 REPO="${REPO:-https://github.com/knsoftic/whats-apis.git}"
 BRANCH="${BRANCH:-main}"
 WEB_USER="${WEB_USER:-www}"
+if [[ -z "${REVERB_PORT_LOCAL:-}" && -f "${APP_DIR}/.env" ]]; then
+  REVERB_PORT_LOCAL=$(grep -E '^REVERB_SERVER_PORT=[0-9]+' "${APP_DIR}/.env" | tail -1 | cut -d= -f2 || true)
+fi
 REVERB_PORT_LOCAL="${REVERB_PORT_LOCAL:-8080}"
 NGINX_VHOST="/www/server/panel/vhost/nginx/${DOMAIN}.conf"
 NGINX_REWRITE="/www/server/panel/vhost/rewrite/${DOMAIN}.conf"
@@ -62,6 +65,17 @@ set_env() { # set_env KEY VALUE  (adds or replaces a line in .env)
 }
 
 artisan() { "$PHP" "${APP_DIR}/artisan" "$@"; }
+
+# Who listens on a TCP port? (prints the command line, empty if free/unknown)
+port_pid()   { (ss -ltnp "sport = :$1" 2>/dev/null || true) | grep -oE 'pid=[0-9]+' | head -1 | cut -d= -f2 || true; }
+port_busy()  { (ss -ltn "sport = :$1" 2>/dev/null || true) | tail -n +2 | grep -q . ; }
+port_owner() { local p; p=$(port_pid "$1"); [[ -n "$p" && -r "/proc/$p/cmdline" ]] && tr '\0' ' ' < "/proc/$p/cmdline" || true; }
+# Our own Reverb = started from this project (command line or working directory).
+port_is_ours() {
+  local p; p=$(port_pid "$1"); [[ -n "$p" ]] || return 1
+  [[ "$(tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null)" == *"${APP_DIR}/artisan"* ]] && return 0
+  [[ "$(readlink "/proc/$p/cwd" 2>/dev/null)" == "${APP_DIR}" ]]
+}
 
 # -----------------------------------------------------------------------------
 step "1/12  Checking server"
@@ -217,6 +231,24 @@ else
   ok ".env exists — kept as is"
 fi
 
+# Reverb needs its own local port. Another site's Reverb/Soketi on the same port answers
+# "Application does not exist" and live chat updates silently stop → move to a free port.
+if port_busy "$REVERB_PORT_LOCAL" && ! port_is_ours "$REVERB_PORT_LOCAL"; then
+  OTHER="$(port_owner "$REVERB_PORT_LOCAL")"
+  NEW_PORT=""
+  for p in $(seq 8081 8099); do
+    if ! port_busy "$p"; then NEW_PORT="$p"; break; fi
+  done
+  if [[ -n "$NEW_PORT" ]]; then
+    warn "Port ${REVERB_PORT_LOCAL} is used by another program (${OTHER:-unknown}) — moving Reverb to ${NEW_PORT}"
+    REVERB_PORT_LOCAL="$NEW_PORT"
+  else
+    warn "Port ${REVERB_PORT_LOCAL} is used by another program (${OTHER:-unknown}) and 8081-8099 are busy — set REVERB_PORT_LOCAL=<free port> and run again."
+  fi
+fi
+set_env REVERB_SERVER_HOST 127.0.0.1
+set_env REVERB_SERVER_PORT "$REVERB_PORT_LOCAL"
+
 # -----------------------------------------------------------------------------
 step "7/12  Database"
 artisan config:clear --no-interaction >/dev/null
@@ -271,6 +303,8 @@ EOF
     awk -v f="$BLOCK_FILE" -v m="$MARK" 'BEGIN{while((getline l<f)>0) b=b l "\n"} {print} !done && $0 ~ m {printf "%s", b; done=1}' \
       "$NGINX_VHOST" > "${NGINX_VHOST}.new" && cat "${NGINX_VHOST}.new" > "$NGINX_VHOST" && rm -f "${NGINX_VHOST}.new" "$BLOCK_FILE"
   fi
+  # Point the WebSocket proxy at the current Reverb port (it may have moved).
+  sed -i -E "/KN Softic: Laravel Reverb/,/^[[:space:]]*}/ s#proxy_pass http://127\.0\.0\.1:[0-9]+;#proxy_pass http://127.0.0.1:${REVERB_PORT_LOCAL};#" "$NGINX_VHOST"
   if [[ -f "$NGINX_REWRITE" ]] && ! grep -q 'try_files' "$NGINX_REWRITE"; then
     printf 'location / {\n    try_files $uri $uri/ /index.php$is_args$query_string;\n}\n' > "$NGINX_REWRITE"
   fi
@@ -344,7 +378,9 @@ EOF
 chown "$WEB_USER":"$WEB_USER" "$APP_DIR"/storage/logs/*.log 2>/dev/null || true
 "${SUPCTL[@]}" reread >/dev/null 2>&1 || true
 "${SUPCTL[@]}" update >/dev/null 2>&1 || true
+artisan reverb:restart --no-interaction >/dev/null 2>&1 || true   # old Reverb processes of this app exit within 5 s
 "${SUPCTL[@]}" restart 'kn-whatsapp-queue:*' kn-whatsapp-reverb >/dev/null 2>&1 || true
+chown -R "$WEB_USER":"$WEB_USER" "$APP_DIR/storage" 2>/dev/null || true
 "${SUPCTL[@]}" status 2>/dev/null | grep kn-whatsapp \
   || warn "Supervisor programs not running — config written to $SUP_DIR; restart Supervisor in aaPanel and check."
 CRON_LINE="* * * * * su -s /bin/bash ${WEB_USER} -c \"cd ${APP_DIR} && ${PHP} artisan schedule:run >> /dev/null 2>&1\""
@@ -359,6 +395,13 @@ CODE=$(curl -sk -o /dev/null -w '%{http_code}' "https://${DOMAIN}/up" || echo 00
 if [[ "$CODE" == "200" ]]; then ok "https://${DOMAIN}/up → 200"; else warn "https://${DOMAIN}/up → $CODE (check SSL / DNS / Nginx; logs: $APP_DIR/storage/logs)"; fi
 LISTENING="$( (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) || true)"
 if grep -q ":${REVERB_PORT_LOCAL} " <<< "$LISTENING"; then ok "Reverb listening on 127.0.0.1:${REVERB_PORT_LOCAL}"; else warn "Reverb is not listening yet — check Supervisor."; fi
+sleep 4
+echo "Live chat updates (Reverb):"
+if artisan whatsapp:realtime-check --no-interaction; then
+  ok "Live chat updates working"
+else
+  warn "Live updates have a problem (see above). The chat page still auto-refreshes every 5 s. Re-check any time: cd ${APP_DIR} && ${PHP} artisan whatsapp:realtime-check"
+fi
 
 echo -e "\n${G}=====================================================================${N}"
 if [[ "$FIRST_INSTALL" == "1" ]]; then

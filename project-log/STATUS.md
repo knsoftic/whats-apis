@@ -19,7 +19,7 @@
 | Webhooks | GET verification, POST signature check, duplicate-safe storage, queued processing, all message types, statuses, template-status & quality webhooks, multi-number routing for one app, STOP/START opt-out | 31 tests + live local signed webhook |
 | Media | Incoming media downloaded via Meta media API to private storage (SHA-256 checked); outgoing upload; safe serving (only image/video/audio inline) | Tests |
 | Sending | Text, reply, image, video, audio, document, template; 24 h window; queue + retries; Meta error mapping; retry button | 24 tests |
-| Real-time chat | Reverb + Echo private channels, live new messages / ticks / unread counters, polling fallback | 13 tests + **live browser test** |
+| Real-time chat | Reverb + Echo private channels, live new messages / ticks / unread counters; auto-refresh every 5 s when realtime is down (30 s safety net when live); sidebar unread badge + counters; `whatsapp:realtime-check` | 13 + 5 tests + **live browser test** |
 | Contacts | List, search, filters, add/edit, tags, notes, consent, history, CSV import/export | 9 tests |
 | Templates | Sync from Meta (paginated), list, preview, send with validated variables | 14 tests |
 | Ops | Hourly credential check, daily pruning, retry failed webhooks command | SecurityTest |

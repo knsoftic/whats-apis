@@ -2,7 +2,8 @@
  * WhatsApp Web-style inbox (Alpine component "chatApp").
  * Data: JSON endpoints under /chat. Real-time: Laravel Echo (Reverb) on the
  * private channel "whatsapp.account.{id}". If the socket is not connected,
- * the component falls back to polling every 10 seconds.
+ * or the channel is refused, it polls every 5 seconds (and every 30 seconds
+ * as a safety net while live).
  */
 
 const escapeHtml = (s) =>
@@ -36,8 +37,10 @@ export default function chatApp(config) {
         hasMoreConversations: false,
         loadingConversations: false,
         q: '',
-        filter: 'all',
+        filter: ['unread', 'waiting', 'open', 'closed'].includes(config.filter) ? config.filter : 'all',
         unreadTotal: 0,
+        counts: { all: 0, unread: 0, messages: 0, waiting: 0, open: 0, closed: 0 },
+        accountCounts: {}, // unread per WhatsApp number (switcher)
 
         // ---- message search
         searchMode: false,
@@ -75,8 +78,12 @@ export default function chatApp(config) {
 
         // ---- realtime
         channel: null,
-        connected: false,
+        connected: false,   // WebSocket connected
+        subscribed: false,  // private channel authorised + subscribed
         pollTimer: null,
+        lastPoll: 0,
+        polling: false,
+        pollCount: 0,
         mobileView: 'list',
         now: Date.now(),
 
@@ -85,7 +92,21 @@ export default function chatApp(config) {
             this.loadConversations();
             if (config.conversationId) this.openById(config.conversationId);
             this.subscribe();
-            this.pollTimer = setInterval(() => this.poll(), 10000);
+            // Safety net: every 5 s while realtime is down, every 30 s while it is live.
+            this.pollTimer = setInterval(() => this.poll(), 5000);
+            this._onVisible = () => document.visibilityState === 'visible' && this.poll(true);
+            document.addEventListener('visibilitychange', this._onVisible);
+            window.addEventListener('focus', this._onVisible);
+            // Fresh numbers fetched by the sidebar badge (e.g. after a realtime event).
+            this._onCounts = (e) => {
+                const mine = e.detail?.accounts?.[this.accountId];
+                if (mine) {
+                    this.counts = mine;
+                    this.unreadTotal = mine.unread;
+                }
+                this.accountCounts = e.detail?.accounts || {};
+            };
+            window.addEventListener('chat:counts', this._onCounts);
             setInterval(() => (this.now = Date.now()), 60000);
             this.$watch('q', () => this.debounce('search', () => this.searchMode ? this.searchMessages() : this.reloadConversations(), 300));
             this.$watch('filter', () => this.reloadConversations());
@@ -93,6 +114,9 @@ export default function chatApp(config) {
 
         destroy() {
             clearInterval(this.pollTimer);
+            document.removeEventListener('visibilitychange', this._onVisible);
+            window.removeEventListener('focus', this._onVisible);
+            window.removeEventListener('chat:counts', this._onCounts);
             this.unsubscribe();
         },
 
@@ -162,20 +186,31 @@ export default function chatApp(config) {
         },
 
         // ========================================================== conversations
-        async loadConversations(append = false) {
+        async loadConversations(append = false, silent = false) {
             if (!this.accountId) return;
-            this.loadingConversations = true;
+            const seq = (this._convSeq = (this._convSeq || 0) + 1); // ignore responses that arrive out of order
+            if (!silent) this.loadingConversations = true;
             try {
                 const params = new URLSearchParams({ account_id: this.accountId, filter: this.filter, page: this.page });
                 if (this.q && !this.searchMode) params.set('q', this.q);
+                const sentAt = Date.now();
                 const res = await http(`${this.routes.conversations}?${params}`);
+                if (seq !== this._convSeq) return;
+                // A chat marked read while this request was in flight → the response is stale for it.
+                const stale = Object.values(this._readAt).some((t) => t >= sentAt);
+                if (stale) res.data.forEach((c) => { if ((this._readAt[c.id] || 0) >= sentAt) c.unread_count = 0; });
                 this.conversations = append ? [...this.conversations, ...res.data.filter((c) => !this.conversations.some((x) => x.id === c.id))] : res.data;
                 this.hasMoreConversations = res.has_more;
-                this.unreadTotal = res.unread_total;
+                if (!stale) {
+                    this.unreadTotal = res.unread_total;
+                    if (res.counts) this.counts = res.counts;
+                    if (res.summary) this.accountCounts = res.summary.accounts || {};
+                }
+                window.dispatchEvent(new CustomEvent('chat:unread', { detail: stale ? null : res.summary || null }));
             } catch (e) {
-                this.notify(e);
+                if (!silent) this.notify(e);
             } finally {
-                this.loadingConversations = false;
+                if (seq === this._convSeq) this.loadingConversations = false;
             }
         },
         reloadConversations() {
@@ -264,12 +299,21 @@ export default function chatApp(config) {
                 if (stick || msg.direction === 'outbound') this.scrollToBottom(true);
             }
         },
+        _readAt: {},
         async markRead() {
             if (!this.active) return;
-            const c = this.conversations.find((x) => x.id === this.active.id);
+            const id = this.active.id;
+            const c = this.conversations.find((x) => x.id === id);
+            if (c && c.unread_count) {
+                this.counts.messages = Math.max(0, this.counts.messages - c.unread_count);
+                this.counts.unread = Math.max(0, this.counts.unread - 1);
+            }
             if (c) c.unread_count = 0;
+            this._readAt[id] = Date.now();
             try {
-                await http(this.url('read', { id: this.active.id }), { method: 'POST' });
+                await http(this.url('read', { id }), { method: 'POST' });
+                this._readAt[id] = Date.now();
+                window.dispatchEvent(new CustomEvent('chat:unread'));
             } catch (e) {
                 /* non-critical */
             }
@@ -279,6 +323,7 @@ export default function chatApp(config) {
             await http(this.url('unread', { id: this.active.id }), { method: 'POST' });
             const c = this.conversations.find((x) => x.id === this.active.id);
             if (c) c.unread_count = Math.max(1, c.unread_count);
+            window.dispatchEvent(new CustomEvent('chat:unread'));
             this.active = null;
             this.mobileView = 'list';
         },
@@ -566,26 +611,43 @@ export default function chatApp(config) {
         },
 
         // ============================================================== realtime
+        /** Live = socket connected AND our private channel subscribed. */
+        get live() {
+            return this.connected && this.subscribed;
+        },
         subscribe() {
             if (!window.Echo || !this.accountId) return;
+            this.subscribed = false;
             try {
                 const pusher = window.Echo.connector?.pusher;
                 if (pusher && !this._stateBound) {
                     this._stateBound = true;
                     this.connected = pusher.connection.state === 'connected';
                     pusher.connection.bind('state_change', (s) => {
-                        const was = this.connected;
+                        const was = this.live;
                         this.connected = s.current === 'connected';
-                        if (this.connected && !was) this.poll(); // catch up after reconnect
+                        if (!this.connected) this.subscribed = false;
+                        if (was && !this.live) this.poll(true); // fall back right away
                     });
                 }
-                this.channel = window.Echo.private(`whatsapp.account.${this.accountId}`)
+                this.channel = window.Echo.private(`whatsapp.account.${this.accountId}`);
+                this.channel
+                    .subscribed(() => {
+                        const was = this.live;
+                        this.subscribed = true;
+                        if (!was) this.poll(true); // catch up on anything missed while offline
+                    })
+                    .error((e) => {
+                        this.subscribed = false;
+                        console.warn('Realtime channel refused — falling back to polling', e);
+                    })
                     .listen('.message.received', (e) => {
                         this.upsertConversation(e.conversation);
                         if (this.active && e.message.conversation_id === this.active.id) {
                             this.upsertMessage(e.message);
                             if (document.visibilityState === 'visible') this.debounce('read', () => this.markRead(), 800);
                         }
+                        this.debounce('unread', () => window.dispatchEvent(new CustomEvent('chat:unread')), 500);
                     })
                     .listen('.message.updated', (e) => {
                         this.upsertConversation(e.conversation);
@@ -598,6 +660,7 @@ export default function chatApp(config) {
                     .listen('.conversation.read', (e) => {
                         const c = this.conversations.find((x) => x.id === e.conversation_id);
                         if (c) c.unread_count = e.unread_count;
+                        this.debounce('unread', () => window.dispatchEvent(new CustomEvent('chat:unread')), 500);
                     });
             } catch (e) {
                 console.warn('Realtime unavailable, using polling', e);
@@ -606,26 +669,43 @@ export default function chatApp(config) {
         unsubscribe() {
             if (window.Echo && this.accountId) window.Echo.leave(`whatsapp.account.${this.accountId}`);
             this.channel = null;
+            this.subscribed = false;
         },
-        async poll() {
-            if (this.connected || document.visibilityState !== 'visible' || !this.accountId) return;
-            if (!this.searchMode && this.page === 1) this.loadConversations();
-            if (this.active && this.messages.length) {
-                try {
+        /**
+         * Fallback / safety-net refresh. Runs every 5 s while realtime is down and
+         * every 30 s while it is live (catches anything a broken broadcast missed).
+         */
+        async poll(force = false) {
+            if (document.visibilityState !== 'visible' || !this.accountId || this.polling) return;
+            const gap = this.live ? 30000 : 5000;
+            if (!force && Date.now() - this.lastPoll < gap - 500) return;
+            this.lastPoll = Date.now();
+            this.polling = true;
+            this.pollCount++;
+            try {
+                if (!this.searchMode && this.page === 1) await this.loadConversations(false, true);
+                if (this.active && this.messages.length) {
+                    const activeId = this.active.id;
                     const last = this.messages[this.messages.length - 1].id;
-                    const res = await http(`${this.url('show', { id: this.active.id })}?after_id=${last}`);
+                    const res = await http(`${this.url('show', { id: activeId })}?after_id=${last}`);
+                    if (!this.active || this.active.id !== activeId) return;
                     res.messages.forEach((m) => this.upsertMessage(m));
-                    // refresh statuses of recent outgoing messages
-                    const recent = await http(this.url('show', { id: this.active.id }));
-                    recent.messages.forEach((m) => {
-                        const x = this.messages.find((y) => y.id === m.id);
-                        if (x && (x.status !== m.status || (m.attachments || []).some((a) => a.url))) Object.assign(x, m);
-                    });
-                    this.active = recent.conversation;
+                    // Refresh ticks / media of recent messages every 3rd poll (or right after new ones).
+                    if (res.messages.length || force || this.pollCount % 3 === 0) {
+                        const recent = await http(this.url('show', { id: activeId }));
+                        if (!this.active || this.active.id !== activeId) return;
+                        recent.messages.forEach((m) => {
+                            const x = this.messages.find((y) => y.id === m.id);
+                            if (x && (x.status !== m.status || (m.attachments || []).some((a) => a.url))) Object.assign(x, m);
+                        });
+                        this.active = recent.conversation;
+                    }
                     if (res.messages.some((m) => m.direction === 'inbound')) this.markRead();
-                } catch (e) {
-                    /* ignore polling errors */
                 }
+            } catch (e) {
+                /* ignore polling errors */
+            } finally {
+                this.polling = false;
             }
         },
     };

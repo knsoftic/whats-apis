@@ -25,7 +25,7 @@
                            description="You don't have access to any WhatsApp account yet. Ask an administrator to add a number or assign one to you." />
         </div>
     @else
-    <div x-data="chatApp(@js(['accounts' => $accounts, 'accountId' => $accountId, 'conversationId' => $conversationId, 'can' => $can, 'routes' => $routes]))"
+    <div x-data="chatApp(@js(['accounts' => $accounts, 'accountId' => $accountId, 'conversationId' => $conversationId, 'filter' => $filter, 'can' => $can, 'routes' => $routes]))"
          class="flex h-full min-h-0">
 
         {{-- ================================================================ LEFT: conversation list --}}
@@ -37,7 +37,7 @@
                 <div class="relative min-w-0 flex-1">
                     <select class="form-input py-2 pr-8 text-sm font-medium" :value="accountId" @change="switchAccount(Number($event.target.value))" aria-label="WhatsApp number">
                         <template x-for="a in accounts" :key="a.id">
-                            <option :value="a.id" :selected="a.id === accountId" x-text="a.name + (a.phone ? ' · ' + a.phone : '') + (a.active ? '' : ' (disabled)')"></option>
+                            <option :value="a.id" :selected="a.id === accountId" x-text="a.name + (a.phone ? ' · ' + a.phone : '') + (a.active ? '' : ' (disabled)') + (accountCounts[a.id]?.unread ? ' — ' + accountCounts[a.id].unread + ' unread' : '')"></option>
                         </template>
                     </select>
                 </div>
@@ -49,9 +49,10 @@
             </div>
 
             {{-- Connection hint --}}
-            <div class="flex items-center gap-2 px-3 pt-2 text-[11px]" :class="connected ? 'text-brand-600 dark:text-brand-400' : 'text-amber-600 dark:text-amber-400'">
-                <span class="h-1.5 w-1.5 rounded-full" :class="connected ? 'bg-brand-500' : 'bg-amber-500 animate-pulse'"></span>
-                <span x-text="connected ? 'Live updates connected' : 'Live updates offline — refreshing every 10 s'"></span>
+            <div class="flex items-center gap-2 px-3 pt-2 text-[11px]" :class="live ? 'text-brand-600 dark:text-brand-400' : 'text-amber-600 dark:text-amber-400'"
+                 :title="live ? 'New messages appear instantly.' : 'The realtime server (Reverb) is not reachable — new messages still appear within 5 seconds.'">
+                <span class="h-1.5 w-1.5 rounded-full" :class="live ? 'bg-brand-500' : 'bg-amber-500 animate-pulse'"></span>
+                <span x-text="live ? 'Live updates connected' : 'Auto-refresh every 5 s (realtime offline)'"></span>
             </div>
 
             {{-- Search --}}
@@ -64,11 +65,15 @@
                             :class="searchMode ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'"
                             x-text="searchMode ? 'Messages' : 'Contacts'" title="Switch between contact search and message search"></button>
                 </div>
-                <div class="flex gap-1.5" x-show="!searchMode">
-                    <template x-for="f in [['all','All'],['unread','Unread'],['open','Open'],['closed','Closed']]" :key="f[0]">
-                        <button type="button" @click="filter = f[0]" class="rounded-full px-3 py-1 text-xs font-medium transition"
+                <div class="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none]" x-show="!searchMode">
+                    <template x-for="f in [['all','All'],['unread','Unread'],['waiting','Waiting'],['open','Open'],['closed','Closed']]" :key="f[0]">
+                        <button type="button" @click="filter = f[0]" class="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition"
+                                :title="{ all: 'All chats', unread: counts.messages + ' unread message(s) in ' + counts.unread + ' chat(s)', waiting: 'Open chats where the customer wrote last (waiting for your reply)', open: 'Open chats', closed: 'Closed chats' }[f[0]]"
                                 :class="filter === f[0] ? 'bg-brand-100 text-brand-800 dark:bg-brand-500/20 dark:text-brand-300' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400'">
-                            <span x-text="f[1]"></span><span x-show="f[0] === 'unread' && unreadTotal" x-text="' ' + unreadTotal"></span>
+                            <span x-text="f[1]"></span>
+                            <span x-show="counts[f[0]] > 0" x-text="counts[f[0]] > 999 ? '999+' : counts[f[0]]"
+                                  class="rounded-full px-1.5 text-[10px] font-bold leading-4"
+                                  :class="f[0] === 'unread' ? 'bg-brand-600 text-white' : (f[0] === 'waiting' ? 'bg-amber-500 text-white' : 'bg-white/70 text-slate-500 dark:bg-slate-700 dark:text-slate-300')"></span>
                         </button>
                     </template>
                 </div>

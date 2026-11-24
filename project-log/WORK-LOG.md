@@ -216,3 +216,40 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - `whatsapp:send-followups` runs every 5 minutes (scheduler). It sends **once per customer message**, only while at least 10 minutes of the window remain. It skips opted-out / blocked contacts, disabled numbers and suspended owners, and respects plan limits. In chat it shows as “⏰ Auto follow-up”.
 - Checked locally: turned it on in the browser and saved; a real command run on a demo chat 23 h 05 m old queued the follow-up with the contact's name. Demo data restored afterwards.
 - **Result:** ✅ 290 tests pass (FollowUpTest 5).
+
+### 2026-11-24 · Fix: chats updated only after reload + sidebar unread counters
+- Live report: new chats and messages appeared only after a page reload; the sidebar showed no unread numbers.
+- Probe of the live site: the WebSocket opens, then the server on the Reverb port answers `4001 Application does not exist`. The Reverb process there does not know the app key in `.env` and the build. Either it runs with an old config, or another program holds port 8080.
+- Chat page fixes:
+  - "Live" now means socket connected **and** private channel subscribed. A refused channel (`.error`) also counts as offline.
+  - Offline: auto-refresh every **5 s** (was 10 s). Live: a safety-net refresh every **30 s**, plus an instant refresh when the tab gets focus or the connection drops.
+  - Silent background refresh (no spinner or error toast). Out-of-order responses are ignored. A chat marked read is no longer shown unread again by a stale response.
+  - Hint text: "Live updates connected" / "Auto-refresh every 5 s (realtime offline)".
+- New **inbox counters** (`App\Support\ChatCounts`, one grouped query):
+  - unread chats, unread messages, **waiting for reply** (open chat, customer wrote last), open, closed, all;
+  - given per number and in total, across every number the user can open.
+- Sidebar "Chats":
+  - a green badge with the unread chats count;
+  - a 2×2 mini panel: Unread msgs / Waiting reply / Open chats / All chats, each linking to the inbox with that filter;
+  - the browser tab title shows "(N)";
+  - refresh every 15 s, instantly from the chat page, and on tab focus. Endpoint: `GET /chat/unread-summary`.
+- Chat filter tabs: All · Unread · **Waiting** (new filter) · Open · Closed, each with its count. The number switcher shows "— N unread" for every number. `/chat?filter=…` preselects a tab.
+- New command: `php artisan whatsapp:realtime-check`. It checks:
+  - the broadcast driver;
+  - Reverb keys in .env, in config/reverb.php and in the **built JS**;
+  - whether the port is listening;
+  - whether the process on the port **accepts this app** (if not, it shows which process holds the port);
+  - an end-to-end publish through Nginx.
+  - It prints the exact fix for each problem.
+- Installer:
+  - keeps the Reverb port saved in .env;
+  - if the port is held by **another program**, moves Reverb to a free port (8081–8099) and updates .env, the Nginx `proxy_pass` and Supervisor;
+  - runs `reverb:restart` + Supervisor restart, so old Reverb processes reload the config;
+  - runs `whatsapp:realtime-check` at the end.
+- Checked locally in the in-app browser:
+  - live connected → a new incoming message showed instantly in the list, tab counts, sidebar badge and title "(1)";
+  - Reverb stopped → hint switched to auto-refresh, and the next message appeared within 5 s;
+  - an open chat received a new message, which was marked read and the counters dropped to 0;
+  - `realtime-check` passed with Reverb running and caught a wrong app id.
+  - Test messages deleted afterwards.
+- **Result:** ✅ 295 tests pass (ChatCountsTest 5).
