@@ -377,7 +377,7 @@ export default function chatApp(config) {
             try {
                 voice.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
             } catch (e) {
-                window.toast(e.name === 'NotAllowedError' ? 'Allow microphone access in your browser to record voice notes.' : 'No microphone found.', 'error');
+                window.toast(await this.micErrorMessage(e), 'error');
                 return;
             }
             // OGG/Opus is sent as-is; WebM / MP4 are converted to OGG on the server.
@@ -393,6 +393,23 @@ export default function chatApp(config) {
                 this.recSeconds++;
                 if (this.recSeconds >= 300) this.stopAndSendVoice(); // 5 minutes max
             }, 1000);
+        },
+        /** Explains why the microphone can't be used and how to fix it. */
+        async micErrorMessage(e) {
+            if (e.name === 'NotFoundError' || e.name === 'OverconstrainedError') return 'No microphone found on this device.';
+            if (e.name === 'NotReadableError') return 'The microphone is being used by another app (e.g. a call). Close it and try again.';
+            const policy = document.permissionsPolicy || document.featurePolicy;
+            if (policy?.allowsFeature && !policy.allowsFeature('microphone')) {
+                return 'The site does not allow the microphone yet — the administrator needs to run the latest update.';
+            }
+            let state = null;
+            try {
+                state = (await navigator.permissions?.query({ name: 'microphone' }))?.state;
+            } catch (err) {}
+            if (state === 'denied' || e.name === 'NotAllowedError') {
+                return 'Microphone is blocked for this site. Click the 🔒 icon left of the address bar → Site settings (Permissions) → Microphone → Allow, then reload the page.';
+            }
+            return 'Could not start the microphone: ' + (e.message || e.name);
         },
         stopRecorder() {
             return new Promise((resolve) => {

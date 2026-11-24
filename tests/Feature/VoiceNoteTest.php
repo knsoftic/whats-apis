@@ -110,6 +110,8 @@ class VoiceNoteTest extends TestCase
 
     public function test_chat_page_shows_the_mic_button(): void
     {
-        $this->actingAs($this->agent)->get('/chat')->assertOk()->assertSee('Record a voice note')->assertSee('stopAndSendVoice', false);
+        $this->actingAs($this->agent)->get('/chat')->assertOk()->assertSee('Record a voice note')->assertSee('stopAndSendVoice', false)
+            // The browser only asks for the mic if the site's Permissions-Policy allows it.
+            ->assertHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
     }
 }

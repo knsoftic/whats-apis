@@ -184,3 +184,9 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Chrome / Android / iPhone recordings are converted with ffmpeg on the server; the installer installs ffmpeg. Firefox OGG is sent as it is.
 - Fix during work: MediaRecorder / MediaStream kept outside Alpine's reactive state (proxies break native methods).
 - **Result:** ✅ 281 tests pass. Real microphone recording not testable in the in-app browser — check in Chrome on the live site.
+
+### 2026-11-24 · Fix: microphone blocked without a browser popup
+- Live report: “Allow microphone access…” appeared and the browser never asked.
+- Cause: our security header `Permissions-Policy: microphone=()` disabled the microphone for the whole site, so the browser refused without a prompt.
+- Fix: `microphone=(self)` (camera and location stay off). Clearer errors: the site still blocks it (needs the update) / blocked in the browser (🔒 → Site settings → Microphone → Allow) / no mic / mic busy.
+- Verified locally: page reports microphone allowed, header test added. ✅ Tests pass.
