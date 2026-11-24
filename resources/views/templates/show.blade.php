@@ -2,6 +2,12 @@
 <x-app-layout :title="$template->name">
     <x-page-header :title="$template->name" :description="$template->language.' · '.ucfirst(strtolower((string) $template->category)).' · '.$template->account->name">
         <x-button variant="secondary" icon="arrow-left" :href="route('templates.index', ['account_id' => $template->whatsapp_account_id])">Templates</x-button>
+        @can(\App\Support\Permissions::TEMPLATES_SYNC)
+            <form method="POST" action="{{ route('templates.destroy', $template) }}" onsubmit="return confirm('Delete this template on WhatsApp too? Meta blocks re-using the same name for 30 days.')">
+                @csrf @method('DELETE')
+                <x-button variant="danger" icon="trash">Delete</x-button>
+            </form>
+        @endcan
     </x-page-header>
 
     <div class="grid gap-6 lg:grid-cols-2">

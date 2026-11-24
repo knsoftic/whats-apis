@@ -79,3 +79,5 @@ Tests: 158 passed (613 assertions)   Duration: 19.4 s   Failed: 0
 | M14 | Bot builder: drag nodes from palette, wire menu options, move node, save, delete a wire → red node + error, re-wire, dark mode | ✅ | In-app browser, 2026-11-20 (real mouse) |
 | M15 | Bot builder: Question + Condition nodes built with real mouse, wired Answer/rules/Otherwise, saved; same JSON runs end to end in a test | ✅ | In-app browser + `BotQuestionConditionTest`, 2026-11-20 |
 | M16 | Users: Login as customer (amber bar, Return to admin), Suspend with reason, Re-activate; customer WhatsApp Numbers shows X / Y used | ✅ | In-app browser, 2026-11-22 |
+| M17 | Leads page + export button; WhatsApp Manager Health/Charges tabs; template builder live preview | ✅ | In-app browser, 2026-11-24 |
+| M18 | Live: health refresh, profile + photo, PIN, block, template review, Meta figures | ⏳ | Needs a connected number on the server |

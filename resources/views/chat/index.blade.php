@@ -15,6 +15,7 @@
         'templates' => route('chat.templates'),
         'contact' => Route::has('contacts.show') ? route('contacts.show', ['contact' => '__id__']) : null,
         'bot' => route('chat.bot', ['conversation' => '__id__']),
+        'block' => route('contacts.block', ['contact' => '__id__']),
     ];
 @endphp
 <x-app-layout title="Chats" :full="true">
@@ -147,6 +148,7 @@
                                 <span x-show="active.contact?.profile_name && active.contact?.profile_name !== active.contact?.name" x-text="' · ~' + active.contact?.profile_name"></span>
                                 <span x-show="active.contact?.opt_in_status === 'opted_out'" class="text-rose-500"> · opted out</span>
                                 <span x-show="active.bot_paused" class="text-amber-600"> · bot paused</span>
+                                <span x-show="active.contact?.blocked" class="text-rose-600"> · blocked</span>
                             </p>
                         </div>
                         <div x-data="{ menu: false }" class="relative">
@@ -158,6 +160,8 @@
                                 <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" @click="markUnread()">Mark as unread</button>
                                 <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" x-show="!active.bot_paused" @click="setBot('pause')">Pause bot (24 h)</button>
                                 <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" x-show="active.bot_paused" @click="setBot('resume')">Resume bot</button>
+                                <button type="button" class="block w-full px-4 py-2 text-left text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10" x-show="can.block && !active.contact?.blocked" @click="setBlocked(true)">Block on WhatsApp</button>
+                                <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" x-show="can.block && active.contact?.blocked" @click="setBlocked(false)">Unblock on WhatsApp</button>
                                 <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" x-show="active.status !== 'closed'" @click="setStatus('closed')">Close conversation</button>
                                 <button type="button" class="block w-full px-4 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700" x-show="active.status === 'closed'" @click="setStatus('open')">Reopen conversation</button>
                             </div>

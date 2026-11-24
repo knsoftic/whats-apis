@@ -7,6 +7,10 @@
         @endif
         @can('update', $contact)
             <x-button variant="secondary" icon="pencil" :href="route('contacts.edit', $contact)">Edit</x-button>
+            <form method="POST" action="{{ route($contact->blocked_at ? 'contacts.unblock' : 'contacts.block', $contact) }}" @unless ($contact->blocked_at) onsubmit="return confirm('Block this customer on WhatsApp? They will not be able to message or call this number.')" @endunless>
+                @csrf @if ($contact->blocked_at) @method('DELETE') @endif
+                <x-button :variant="$contact->blocked_at ? 'secondary' : 'danger'" :icon="$contact->blocked_at ? 'check' : 'x-circle'">{{ $contact->blocked_at ? 'Unblock on WhatsApp' : 'Block on WhatsApp' }}</x-button>
+            </form>
         @endcan
     </x-page-header>
 

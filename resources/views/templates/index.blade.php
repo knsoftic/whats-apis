@@ -3,6 +3,7 @@
     <x-page-header title="Message Templates" description="Templates approved by Meta are required for business-initiated messages and after the 24-hour window.">
         @if ($account)
             @can(P::TEMPLATES_SYNC)
+                <x-button icon="plus" :href="route('templates.create', ['account_id' => $account->id])">New template</x-button>
                 <form method="POST" action="{{ route('templates.sync') }}" x-data="{ busy: false }" @submit="busy = true">
                     @csrf
                     <input type="hidden" name="account_id" value="{{ $account->id }}">

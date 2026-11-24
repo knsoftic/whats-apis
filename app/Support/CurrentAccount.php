@@ -30,16 +30,21 @@ class CurrentAccount
      */
     public function accounts(): Collection
     {
-        if ($this->accounts !== null) {
+        $user = $this->user();
+
+        // Cached per user (the signed-in user can change, e.g. "Login as user").
+        if ($this->accounts !== null && $this->accountsFor === $user?->id) {
             return $this->accounts;
         }
 
-        $user = $this->user();
+        $this->accountsFor = $user?->id;
 
         return $this->accounts = $user
             ? $user->accessibleAccounts()->orderBy('name')->get()
             : collect();
     }
+
+    private ?int $accountsFor = null;
 
     public function id(): ?int
     {

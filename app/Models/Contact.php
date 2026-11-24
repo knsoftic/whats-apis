@@ -38,6 +38,7 @@ class Contact extends Model
         return [
             'opted_in_at' => 'datetime',
             'opted_out_at' => 'datetime',
+            'blocked_at' => 'datetime',
         ];
     }
 

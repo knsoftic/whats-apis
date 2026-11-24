@@ -171,3 +171,10 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Customers can no longer delete a connected number or change its WABA / Phone Number ID; a full plan hides Add/Connect (“2 / 2 used”). Only staff can delete numbers.
 - Browser-checked; fixed overflowing table actions and an invalid `@elseunless` directive found during the check.
 - **Result:** ✅ 269 tests pass (1326 assertions). Local test customer removed.
+
+### 2026-11-24 · Phase 14 — Leads sheet, WhatsApp Manager, template builder
+- Leads: the first message of each new number is saved (profile name, number, message) and old chats are backfilled; page with filters and CSV export for campaigns.
+- WhatsApp Manager per number: health (quality, limit tier, name status, can-send issues), business profile (incl. photo via resumable upload), two-step PIN, blocked customers (block/unblock from chat and contact), Meta charges (local estimate × rates + Meta pricing analytics).
+- Template builder: create (text/media header, variables with examples, footer, buttons, OTP) + delete, rule checks, live preview.
+- Fixes during work: CSV phone kept without a quote mark; `CurrentAccount` cache keyed by user.
+- **Result:** ✅ 277 tests pass (1411 assertions). Browser-checked locally; live Meta behaviour still to confirm on the server.

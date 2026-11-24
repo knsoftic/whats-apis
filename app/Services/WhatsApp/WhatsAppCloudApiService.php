@@ -361,6 +361,176 @@ class WhatsAppCloudApiService
         return $templates;
     }
 
+    /**
+     * POST /{waba-id}/message_templates — submit a new template for Meta review.
+     *
+     * @param  array<string, mixed>  $template  name, language, category, components[, parameter_format]
+     * @return array<string, mixed>  {id, status, category}
+     */
+    public function createTemplate(array $template): array
+    {
+        return $this->post($this->account->waba_id.'/message_templates', $template);
+    }
+
+    /** DELETE /{waba-id}/message_templates?name=…[&hsm_id=…] */
+    public function deleteTemplate(string $name, ?string $metaTemplateId = null): bool
+    {
+        $res = $this->send('delete', $this->account->waba_id.'/message_templates', array_filter(['name' => $name, 'hsm_id' => $metaTemplateId]));
+
+        return (bool) ($res['success'] ?? false);
+    }
+
+    // =====================================================================
+    //  WhatsApp Manager — health, business profile, PIN, block list, pricing
+    // =====================================================================
+
+    /**
+     * Number + WABA health. Optional fields are asked for separately so an
+     * older Graph version never breaks the whole page.
+     *
+     * @return array<string, mixed>
+     */
+    public function getHealth(): array
+    {
+        $phone = $this->get($this->account->phone_number_id, [
+            'fields' => 'id,display_phone_number,verified_name,quality_rating,name_status,code_verification_status,platform_type,throughput',
+        ]);
+
+        $phoneExtra = $this->tryGet($this->account->phone_number_id, ['fields' => 'messaging_limit_tier,is_official_business_account,account_mode,health_status']);
+        $waba = $this->tryGet($this->account->waba_id, ['fields' => 'id,name,currency,timezone_id,account_review_status,ownership_type']);
+        $wabaHealth = $this->tryGet($this->account->waba_id, ['fields' => 'health_status']);
+
+        return ['phone' => $phone + $phoneExtra, 'waba' => $waba + $wabaHealth, 'fetched_at' => now()->toIso8601String()];
+    }
+
+    /** @return array<string, mixed> */
+    public function getBusinessProfile(): array
+    {
+        $res = $this->get($this->account->phone_number_id.'/whatsapp_business_profile', [
+            'fields' => 'about,address,description,email,profile_picture_url,websites,vertical',
+        ]);
+
+        return $res['data'][0] ?? [];
+    }
+
+    /** @param  array<string, mixed>  $fields  about, address, description, email, websites[], vertical, profile_picture_handle */
+    public function updateBusinessProfile(array $fields): bool
+    {
+        $res = $this->post($this->account->phone_number_id.'/whatsapp_business_profile', ['messaging_product' => 'whatsapp'] + $fields);
+
+        return (bool) ($res['success'] ?? true);
+    }
+
+    /** POST /{phone-number-id} {pin} — set / change the two-step verification PIN. */
+    public function setTwoStepPin(string $pin): bool
+    {
+        $res = $this->post($this->account->phone_number_id, ['pin' => $pin]);
+
+        return (bool) ($res['success'] ?? true);
+    }
+
+    /**
+     * Block or unblock customers (Block Users API).
+     *
+     * @param  list<string>  $waIds
+     * @return array{added: list<string>, failed: list<array{user: string, error: string}>}
+     */
+    public function blockUsers(array $waIds, bool $block = true): array
+    {
+        $res = $this->send($block ? 'post' : 'delete', $this->account->phone_number_id.'/block_users', [
+            'messaging_product' => 'whatsapp',
+            'block_users' => array_map(fn ($id) => ['user' => self::normalizeRecipient($id)], $waIds),
+        ]);
+
+        $key = $block ? 'added_users' : 'removed_users';
+        $ok = array_map(fn ($u) => (string) ($u['wa_id'] ?? $u['input'] ?? ''), $res['block_users'][$key] ?? []);
+        $failed = array_map(fn ($u) => [
+            'user' => (string) ($u['wa_id'] ?? $u['input'] ?? ''),
+            'error' => (string) ($u['errors'][0]['error_data']['details'] ?? $u['errors'][0]['message'] ?? 'Meta refused the request.'),
+        ], $res['block_users']['failed_users'] ?? []);
+
+        return ['added' => array_values(array_filter($ok)), 'failed' => $failed];
+    }
+
+    /**
+     * Meta's own cost figures (per-message pricing analytics) for a period.
+     *
+     * @return list<array<string, mixed>>  data points: pricing_category, pricing_type, volume, cost, start, end
+     */
+    public function getPricingAnalytics(\DateTimeInterface $start, \DateTimeInterface $end): array
+    {
+        $field = sprintf(
+            'pricing_analytics.start(%d).end(%d).granularity(MONTHLY).dimensions(["PRICING_CATEGORY","PRICING_TYPE"])',
+            $start->getTimestamp(),
+            $end->getTimestamp(),
+        );
+
+        $res = $this->get($this->account->waba_id, ['fields' => $field]);
+
+        $points = [];
+        foreach ($res['pricing_analytics']['data'] ?? [] as $block) {
+            foreach ($block['data_points'] ?? [] as $point) {
+                $points[] = $point;
+            }
+        }
+
+        return $points;
+    }
+
+    /** Which Meta app the token belongs to (for uploads). */
+    public function detectAppId(): ?string
+    {
+        $res = $this->tryGet('debug_token', ['input_token' => (string) $this->account->access_token]);
+
+        return isset($res['data']['app_id']) ? (string) $res['data']['app_id'] : null;
+    }
+
+    /**
+     * Resumable Upload API → file handle (profile photo, template media sample).
+     */
+    public function uploadForHandle(string $appId, string $path, string $mimeType): string
+    {
+        $token = (string) $this->account->access_token;
+
+        try {
+            $session = Http::baseUrl($this->account->graphBaseUrl())->acceptJson()->withToken($token)
+                ->timeout(config('whatsapp.http.timeout'))
+                ->post($appId.'/uploads?'.http_build_query(['file_name' => basename($path), 'file_length' => filesize($path), 'file_type' => $mimeType]));
+
+            if ($session->failed()) {
+                throw WhatsAppApiException::fromResponse($session);
+            }
+
+            $upload = Http::baseUrl($this->account->graphBaseUrl())->acceptJson()
+                ->withHeaders(['Authorization' => 'OAuth '.$token, 'file_offset' => '0'])
+                ->timeout(max(120, config('whatsapp.http.timeout')))
+                ->withBody((string) file_get_contents($path), $mimeType)
+                ->post((string) $session->json('id'));
+        } catch (ConnectionException $e) {
+            throw WhatsAppApiException::connection($e);
+        }
+
+        if ($upload->failed()) {
+            throw WhatsAppApiException::fromResponse($upload);
+        }
+
+        return (string) $upload->json('h');
+    }
+
+    /**
+     * GET that returns [] instead of failing (for optional fields).
+     *
+     * @return array<string, mixed>
+     */
+    private function tryGet(string $path, array $query): array
+    {
+        try {
+            return $this->get($path, $query);
+        } catch (WhatsAppApiException) {
+            return [];
+        }
+    }
+
     // =====================================================================
     //  HTTP plumbing
     // =====================================================================

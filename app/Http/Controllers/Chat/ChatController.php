@@ -56,6 +56,7 @@ class ChatController extends Controller
                 'send' => $request->user()->can(Permissions::CHATS_SEND),
                 'template' => $request->user()->can(Permissions::TEMPLATES_SEND),
                 'contacts' => $request->user()->can(Permissions::CONTACTS_VIEW),
+                'block' => $request->user()->can(Permissions::CONTACTS_MANAGE),
             ],
         ]);
     }

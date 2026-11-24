@@ -284,6 +284,16 @@ export default function chatApp(config) {
                 this.notify(e);
             }
         },
+        async setBlocked(block) {
+            if (block && !confirm('Block this customer on WhatsApp? They will not be able to message or call this number.')) return;
+            try {
+                const res = await http(this.routes.block.replace('__id__', this.active.contact.id), { method: block ? 'POST' : 'DELETE' });
+                this.active.contact.blocked = res.blocked;
+                window.toast(res.message);
+            } catch (e) {
+                this.notify(e);
+            }
+        },
         async setStatus(status) {
             try {
                 const res = await http(this.url('update', { id: this.active.id }), { method: 'PATCH', body: { status } });

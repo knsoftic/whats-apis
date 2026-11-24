@@ -106,6 +106,7 @@ class MessageSender
                 'name' => $template->name,
                 'language' => $template->language,
                 'template_id' => $template->id,
+                'category' => $template->category, // for the Meta charges estimate
                 'components' => $built['components'],
             ],
         ]);

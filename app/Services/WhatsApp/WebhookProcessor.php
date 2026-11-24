@@ -164,6 +164,9 @@ class WebhookProcessor
                     'wa_timestamp' => $sentAt,
                 ]);
 
+                // Leads sheet: first message from this number → saved once (name + number + message).
+                \App\Models\Lead::capture($account, $contact, $message, $sentAt);
+
                 $attachment = null;
 
                 if ($parsed['media']) {

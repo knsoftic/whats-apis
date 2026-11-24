@@ -54,6 +54,7 @@ class WhatsAppAccount extends Model
         'webhook_verify_token',
         'app_secret',
         'phone_meta',
+        'meta_app_id',
     ];
 
     protected function casts(): array

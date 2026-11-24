@@ -2,6 +2,7 @@
     <x-page-header :title="$account->name" :description="($account->display_phone_number ?? 'Phone number not confirmed').($account->verified_name ? ' · '.$account->verified_name : '')">
         <x-button variant="secondary" icon="arrow-left" :href="route('accounts.index')">All accounts</x-button>
         <x-button variant="secondary" icon="pencil" :href="route('accounts.edit', $account)">Edit</x-button>
+        <x-button icon="activity" :href="route('accounts.manage', $account)">WhatsApp Manager</x-button>
     </x-page-header>
 
     {{-- Health overview --}}

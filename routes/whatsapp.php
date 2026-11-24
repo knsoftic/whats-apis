@@ -45,6 +45,22 @@ Route::middleware(['auth'])->group(function () {
             ->name('accounts.toggle');
         Route::get('whatsapp-accounts/{account}/verify-token', [WhatsAppAccountController::class, 'verifyToken'])
             ->middleware('throttle:20,1')->name('accounts.verify-token');
+
+        // ---- WhatsApp Manager (health, business profile, PIN, blocked, charges) ----
+        $manager = \App\Http\Controllers\WhatsAppManagerController::class;
+        Route::get('whatsapp-accounts/{account}/manage/{tab?}', [$manager, 'show'])
+            ->whereIn('tab', array_keys(\App\Http\Controllers\WhatsAppManagerController::TABS))->name('accounts.manage');
+        Route::post('whatsapp-accounts/{account}/manage/health', [$manager, 'refreshHealth'])->middleware('throttle:whatsapp-api-check')->name('accounts.manage.health');
+        Route::put('whatsapp-accounts/{account}/manage/profile', [$manager, 'updateProfile'])->middleware('throttle:10,1')->name('accounts.manage.profile');
+        Route::post('whatsapp-accounts/{account}/manage/app-id', [$manager, 'saveAppId'])->name('accounts.manage.app-id');
+        Route::post('whatsapp-accounts/{account}/manage/pin', [$manager, 'updatePin'])->middleware('throttle:5,1')->name('accounts.manage.pin');
+        Route::post('whatsapp-accounts/{account}/manage/rates', [$manager, 'saveRates'])->name('accounts.manage.rates');
+    });
+
+    // ---- Block / unblock a customer on WhatsApp ------------------------------
+    Route::middleware(['permission:'.P::CONTACTS_MANAGE, 'throttle:20,1'])->group(function () {
+        Route::post('contacts/{contact}/block', [\App\Http\Controllers\ContactBlockController::class, 'store'])->name('contacts.block');
+        Route::delete('contacts/{contact}/block', [\App\Http\Controllers\ContactBlockController::class, 'destroy'])->name('contacts.unblock');
     });
 
     // ---- Chat inbox (Phase 5) + sending (Phase 4) ---------------------------
@@ -76,7 +92,11 @@ Route::middleware(['auth'])->group(function () {
             Route::get('contacts/import', [ContactController::class, 'importForm'])->name('contacts.import.form');
             Route::post('contacts/import', [ContactController::class, 'import'])->middleware('throttle:10,1')->name('contacts.import');
             Route::get('contacts/export', [ContactController::class, 'export'])->middleware('throttle:10,1')->name('contacts.export');
+            Route::get('leads/export', [\App\Http\Controllers\LeadController::class, 'export'])->middleware('throttle:10,1')->name('leads.export');
         });
+
+        // Leads sheet (first message of every new number).
+        Route::get('leads', [\App\Http\Controllers\LeadController::class, 'index'])->name('leads.index');
 
         Route::resource('contacts', ContactController::class);
         Route::post('contacts/{contact}/notes', [ContactController::class, 'storeNote'])->name('contacts.notes.store');
@@ -86,6 +106,15 @@ Route::middleware(['auth'])->group(function () {
     // ---- Message templates (Phase 6) ------------------------------------------
     Route::middleware('permission:'.P::TEMPLATES_VIEW)->group(function () {
         Route::get('templates', [TemplateController::class, 'index'])->name('templates.index');
+
+        // Create / delete templates (submitted to Meta for review) — before {template} routes.
+        Route::middleware('permission:'.P::TEMPLATES_SYNC)->group(function () {
+            Route::get('templates/create', [\App\Http\Controllers\TemplateBuilderController::class, 'create'])->name('templates.create');
+            Route::post('templates', [\App\Http\Controllers\TemplateBuilderController::class, 'store'])
+                ->middleware('throttle:whatsapp-api-check')->name('templates.store');
+            Route::delete('templates/{template}', [\App\Http\Controllers\TemplateBuilderController::class, 'destroy'])->name('templates.destroy');
+        });
+
         Route::get('templates/{template}', [TemplateController::class, 'show'])->name('templates.show');
         Route::post('templates/sync', [TemplateController::class, 'sync'])
             ->middleware(['permission:'.P::TEMPLATES_SYNC, 'throttle:whatsapp-api-check'])->name('templates.sync');

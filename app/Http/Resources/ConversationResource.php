@@ -35,6 +35,7 @@ class ConversationResource extends JsonResource
                 'initials' => $contact->initials(),
                 'profile_name' => $contact->profile_name,
                 'opt_in_status' => $contact->opt_in_status,
+                'blocked' => $contact->blocked_at !== null,
             ] : null,
         ];
     }

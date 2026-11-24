@@ -5,6 +5,7 @@
         ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => 'dashboard', 'icon' => 'home', 'can' => P::DASHBOARD_VIEW],
         ['label' => 'Chats', 'route' => 'chat.index', 'active' => 'chat.*', 'icon' => 'chat', 'can' => P::CHATS_VIEW],
         ['label' => 'Contacts', 'route' => 'contacts.index', 'active' => 'contacts.*', 'icon' => 'contacts', 'can' => P::CONTACTS_VIEW],
+        ['label' => 'Leads', 'route' => 'leads.index', 'active' => 'leads.*', 'icon' => 'users', 'can' => P::CONTACTS_VIEW],
         ['label' => 'Message Templates', 'route' => 'templates.index', 'active' => 'templates.*', 'icon' => 'template', 'can' => P::TEMPLATES_VIEW],
         ['label' => 'Bot Flows', 'route' => 'bots.index', 'active' => 'bots.*', 'icon' => 'bolt', 'can' => P::BOTS_MANAGE],
         ['label' => 'WhatsApp Numbers', 'route' => 'accounts.index', 'active' => 'accounts.*', 'icon' => 'phone', 'can' => P::ACCOUNTS_MANAGE, 'customer_only' => true],
