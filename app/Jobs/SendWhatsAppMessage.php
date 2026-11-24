@@ -135,7 +135,7 @@ class SendWhatsAppMessage implements ShouldQueue
         return match ($message->type) {
             'image' => $api->sendImageMessage($to, $media, $message->body, $replyTo),
             'video' => $api->sendVideoMessage($to, $media, $message->body, $replyTo),
-            'audio' => $api->sendAudioMessage($to, $media, $replyTo, (bool) ($message->content['voice'] ?? false)),
+            'audio' => $api->sendAudioMessage($to, $media, $replyTo, (bool) ($message->content['voice'] ?? false) && ! ($message->content['voice_fallback'] ?? false)),
             'document' => $api->sendDocumentMessage($to, $media, $message->body, $attachment->file_name, $replyTo),
             default => throw new WhatsAppApiException("Unsupported outgoing type {$message->type}"),
         };

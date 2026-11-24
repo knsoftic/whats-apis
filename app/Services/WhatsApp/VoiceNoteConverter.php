@@ -20,6 +20,9 @@ use Throwable;
  */
 class VoiceNoteConverter
 {
+    /** WhatsApp shows a play button only for voice files up to 512 KB — stay safely below. */
+    public const VOICE_MAX_BYTES = 480 * 1024;
+
     private ?bool $available = null;
 
     public function ffmpegAvailable(): bool
@@ -79,21 +82,61 @@ class VoiceNoteConverter
         return $pos !== false && isset($head[$pos + 9]) && ord($head[$pos + 9]) === 1;
     }
 
+    /**
+     * Mono Opus OGG. Long recordings get a lower bitrate so the file stays under
+     * 512 KB (bigger voice files fail or show a download icon on WhatsApp).
+     */
     private function toOggOpus(string $input): string
+    {
+        $output = $this->encodeOpus($input, 24);
+        $size = (int) filesize($output);
+
+        if ($size > self::VOICE_MAX_BYTES) {
+            $kbps = max(8, (int) floor(24 * self::VOICE_MAX_BYTES / $size));
+            @unlink($output);
+            $output = $this->encodeOpus($input, $kbps);
+        }
+
+        return $output;
+    }
+
+    /**
+     * Plain AAC audio (.m4a) — the fallback when Meta refuses a voice note.
+     * ffmpeg's built-in AAC encoder is in every build.
+     */
+    public function toAac(string $input): ?string
+    {
+        if (! $this->ffmpegAvailable()) {
+            return null;
+        }
+
+        $output = $this->tempPath('m4a');
+        $result = Process::timeout(120)->run([$this->binary(), '-hide_banner', '-loglevel', 'error', '-y', '-i', $input, '-vn', '-map_metadata', '-1', '-ac', '1', '-ar', '44100', '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart', '-f', 'mp4', $output]);
+
+        return $result->successful() && is_file($output) && filesize($output) > 0 ? $output : null;
+    }
+
+    private function tempPath(string $extension): string
     {
         $base = tempnam(sys_get_temp_dir(), 'voice');
         @unlink($base);
-        $output = $base.'.ogg';
+
+        return $base.'.'.$extension;
+    }
+
+    private function encodeOpus(string $input, int $kbps): string
+    {
+        $output = $this->tempPath('ogg');
 
         // Always mono Opus, no metadata. libopus first, then ffmpeg's built-in Opus encoder.
-        $common = ['-vn', '-map_metadata', '-1', '-ac', '1', '-ar', '48000', '-b:a', '24k'];
+        $common = ['-vn', '-map_metadata', '-1', '-ac', '1', '-ar', '48000', '-b:a', $kbps.'k'];
         $attempts = [
             ['-c:a', 'libopus', '-application', 'voip'],
             ['-c:a', 'opus', '-strict', '-2'],
         ];
 
         foreach ($attempts as $codec) {
-            $result = Process::timeout(60)->run([$this->binary(), '-hide_banner', '-loglevel', 'error', '-y', '-i', $input, ...$common, ...$codec, '-f', 'ogg', $output]);
+            $result = Process::timeout(120)->run([$this->binary(), '-hide_banner', '-loglevel', 'error', '-y', '-i', $input, ...$common, ...$codec, '-f', 'ogg', $output]);
 
             if ($result->successful() && is_file($output) && filesize($output) > 0) {
                 return $output;

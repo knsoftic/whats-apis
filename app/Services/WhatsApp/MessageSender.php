@@ -136,6 +136,53 @@ class MessageSender
     /**
      * Re-queue a failed message (same content, new attempt).
      */
+    /**
+     * Meta refused a voice note (error 131053, "media file scrutiny") → send the
+     * same recording once more as plain audio (AAC .m4a), so it still arrives.
+     */
+    public function resendVoiceAsAudio(Message $message): bool
+    {
+        $content = $message->content ?? [];
+
+        if ($message->type !== 'audio' || empty($content['voice']) || ! empty($content['voice_fallback'])) {
+            return false;
+        }
+
+        $attachment = $message->attachments()->first();
+
+        if ($attachment?->path && Storage::disk($attachment->disk)->exists($attachment->path)) {
+            $aac = app(VoiceNoteConverter::class)->toAac(Storage::disk($attachment->disk)->path($attachment->path));
+
+            if ($aac) {
+                $path = preg_replace('/\.[^.\/]+$/', '', $attachment->path).'-audio.m4a';
+                Storage::disk($attachment->disk)->put($path, (string) file_get_contents($aac));
+                @unlink($aac);
+
+                $attachment->forceFill([
+                    'path' => $path,
+                    'mime_type' => 'audio/mp4',
+                    'file_name' => 'voice-note.m4a',
+                    'size' => Storage::disk($attachment->disk)->size($path),
+                    'wa_media_id' => null,
+                ])->save();
+            }
+        }
+
+        $message->forceFill([
+            'content' => $content + ['voice_fallback' => true],
+            'status' => Message::STATUS_PENDING,
+            'wa_message_id' => null,
+            'error_code' => null,
+            'error_message' => null,
+            'failed_at' => null,
+        ])->save();
+
+        SendWhatsAppMessage::dispatch($message->id)->onQueue(config('whatsapp.queue'));
+        MessageUpdated::dispatch($message);
+
+        return true;
+    }
+
     private function refreshVoiceNote(Message $message): void
     {
         $attachment = $message->attachments()->first();

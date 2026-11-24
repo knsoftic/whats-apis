@@ -198,3 +198,10 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - Fix: with ffmpeg, **every** recording is re-encoded to mono Opus 48 kHz, 24 kbit/s, no metadata. The fallback is ffmpeg's built-in Opus encoder; there is no more stream copy. Without ffmpeg, only an OGG that is already mono is accepted.
 - Audio is now sent with `voice: true`. **Retry** on an older failed voice note re-encodes the stored file and uploads it again.
 - **Result:** ✅ 283 tests pass (VoiceNoteTest 6).
+
+### 2026-11-24 · Fix: long voice notes failing
+- Live report: short voice notes arrive, longer ones fail.
+- Meta: voice files over 512 KB lose the play icon. In practice the bigger files were refused (131053), and Meta's docs set no duration limit.
+- Fix 1: **adaptive bitrate.** Encode at 24 kbit/s; if the file is over 480 KB, re-encode at a lower bitrate (minimum 8 kbit/s), so a 5-minute note stays under 512 KB.
+- Fix 2: **automatic fallback.** If Meta still refuses a voice note (131053), the same recording is resent **once** as plain audio (AAC .m4a, without the voice flag), so it still reaches the customer. There is no loop.
+- **Result:** ✅ 285 tests pass (VoiceNoteTest 8). Not yet confirmed against Meta live.

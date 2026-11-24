@@ -300,6 +300,11 @@ class WebhookProcessor
 
         MessageStatusUpdated::dispatch($message);
 
+        // Voice note refused by Meta's media check → resend once as plain audio.
+        if ($new === Message::STATUS_FAILED && $message->error_code === '131053') {
+            app(MessageSender::class)->resendVoiceAsAudio($message);
+        }
+
         return $message;
     }
 

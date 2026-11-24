@@ -15,12 +15,13 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\FakesMeta;
+use Tests\Concerns\SendsWebhooks;
 use Tests\TestCase;
 
 /** Mic button in chat → WhatsApp voice note (OGG/Opus). */
 class VoiceNoteTest extends TestCase
 {
-    use FakesMeta, RefreshDatabase;
+    use FakesMeta, RefreshDatabase, SendsWebhooks;
 
     private WhatsAppAccount $account;
 
@@ -154,6 +155,57 @@ class VoiceNoteTest extends TestCase
         $this->postVoice(UploadedFile::fake()->createWithContent('voice-note.webm', 'just some text'))->assertStatus(422);
         $this->assertDatabaseCount('messages', 0);
         Http::assertNothingSent();
+    }
+
+    public function test_long_recordings_get_a_lower_bitrate_to_stay_under_512_kb(): void
+    {
+        // First encode at 24k is 900 KB (a long recording) → re-encode at a lower bitrate.
+        Process::fake(function (PendingProcess $process) {
+            $cmd = $process->command;
+            if (in_array('-i', $cmd, true)) {
+                $kbps = $cmd[array_search('-b:a', $cmd, true) + 1];
+                file_put_contents(end($cmd), self::OGG.str_repeat("\x00", $kbps === '24k' ? 900 * 1024 : 400 * 1024));
+            }
+
+            return Process::result('ok');
+        });
+
+        $this->postVoice($this->webm())->assertCreated();
+
+        Process::assertRan(fn (PendingProcess $p) => in_array('-b:a', $p->command, true) && $p->command[array_search('-b:a', $p->command, true) + 1] === '12k');
+        $this->assertLessThanOrEqual(512 * 1024, Message::firstOrFail()->attachments()->firstOrFail()->size);
+    }
+
+    public function test_voice_note_refused_by_meta_is_resent_once_as_plain_audio(): void
+    {
+        Process::fake(function (PendingProcess $process) {
+            $cmd = $process->command;
+            if (in_array('-i', $cmd, true)) {
+                file_put_contents(end($cmd), str_ends_with(end($cmd), '.m4a') ? 'aac-bytes' : self::OGG);
+            }
+
+            return Process::result('ok');
+        });
+
+        $this->postVoice($this->webm())->assertCreated();
+        $message = Message::firstOrFail();
+        $wamid = $message->wa_message_id;
+
+        // Meta: 131053 "Media upload error" for the voice note.
+        $failed = ['errors' => [['code' => 131053, 'title' => 'Media upload error', 'error_data' => ['details' => 'Media file scrutiny for the file failed with mediaEngineStatus: 0']]]];
+        $this->postWebhook($this->account, $this->statusPayload($this->account, $wamid, 'failed', $failed))->assertOk();
+
+        $message->refresh();
+        $this->assertTrue($message->content['voice_fallback']);
+        $this->assertNotSame(Message::STATUS_FAILED, $message->status);
+        $attachment = $message->attachments()->firstOrFail();
+        $this->assertSame('audio/mp4', $attachment->mime_type);
+        $this->assertStringEndsWith('-audio.m4a', $attachment->path);
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), '/messages') && $r['type'] === 'audio' && ! array_key_exists('voice', $r['audio']));
+
+        // A second refusal is final (no loop).
+        $this->postWebhook($this->account, $this->statusPayload($this->account, $message->wa_message_id, 'failed', $failed, now()->timestamp + 30))->assertOk();
+        $this->assertSame(Message::STATUS_FAILED, $message->fresh()->status);
     }
 
     public function test_chat_page_shows_the_mic_button(): void
