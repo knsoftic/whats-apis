@@ -21,9 +21,13 @@ use Illuminate\Support\Str;
  * Runs bot flows for an incoming message.
  *
  * Choice order:  1. menu button / list row tapped ("bf:{flow}" or "bf:{flow}:{node}:{option}")
- *                2. keyword flows (highest priority first)
- *                3. welcome flow (contact's first message)
- *                4. fallback flow
+ *                   (a pending Question node takes the message as its answer before 2.)
+ *                2. "Any message" flows — every message of any type (text, voice,
+ *                   picture, video, file, sticker, location…), first or not, keyword
+ *                   match or not. One in its cooldown is skipped → the next choices.
+ *                3. keyword flows (highest priority first)
+ *                4. welcome flow (contact's first message)
+ *                5. fallback flow
  * Never runs when the chat's bot is paused (agent replied / handoff), the
  * number is disabled, the owner's plan has no bots, or the daily limit is hit.
  *
@@ -64,7 +68,7 @@ class BotEngine
             return $answered;
         }
 
-        [$flow, $node, $port, $tapped] = $this->resolve($flows, $inbound, $conversation);
+        [$flow, $node, $port, $tapped] = $this->resolve($flows, $inbound, $conversation, skipAnyFlows: fn (BotFlow $f) => $this->inCooldown($f, $conversation));
 
         // A tapped menu button always answers; cooldown is for keyword / welcome / fallback.
         if (! $flow || (! $tapped && $this->inCooldown($flow, $conversation))) {
@@ -147,6 +151,20 @@ class BotEngine
         $this->send($flow, $conversation, ['type' => 'text', 'text' => $this->fill($retry, $this->vars($conversation))]);
 
         return $flow;
+    }
+
+    /** Condition "Message type": voice / picture / video / file / text / … of the incoming message. */
+    public static function messageTypeMatches(?Message $message, string $type): bool
+    {
+        $t = (string) ($message?->type ?? '');
+
+        return match ($type) {
+            'voice' => $t === 'audio',
+            'button' => in_array($t, ['button', 'interactive'], true),
+            'media' => in_array($t, ['image', 'video', 'audio', 'document', 'sticker'], true),
+            '' => false,
+            default => $t === $type,
+        };
     }
 
     public static function validAnswer(string $answer, string $type): bool
@@ -238,6 +256,11 @@ class BotEngine
 
                 return ($rule['op'] ?? 'has') === 'has_not' ? ! $has : $has;
 
+            case 'message_type':
+                $is = self::messageTypeMatches($trigger, (string) ($rule['mtype'] ?? ''));
+
+                return ($rule['op'] ?? 'is') === 'is_not' ? ! $is : $is;
+
             case 'new_contact':
                 $new = (bool) $conversation->contact?->created_at?->gt(now()->subDay());
 
@@ -269,14 +292,15 @@ class BotEngine
      */
     public function pickFlow(Collection $flows, Message $inbound, Conversation $conversation): ?BotFlow
     {
-        return $this->resolve($flows, $inbound, $conversation)[0];
+        return $this->resolve($flows, $inbound, $conversation, skipAnyFlows: fn (BotFlow $f) => $this->inCooldown($f, $conversation))[0];
     }
 
     /**
      * @param  Collection<int, BotFlow>  $flows
+     * @param  (callable(BotFlow): bool)|null  $skipAnyFlows  e.g. "is in its cooldown"
      * @return array{0: ?BotFlow, 1: ?string, 2: ?string, 3: bool}  flow, start node, port, tapped a button
      */
-    private function resolve(Collection $flows, Message $inbound, Conversation $conversation): array
+    private function resolve(Collection $flows, Message $inbound, Conversation $conversation, ?callable $skipAnyFlows = null): array
     {
         // 1. Menu option tapped
         $payload = (string) ($inbound->content['reply']['id'] ?? $inbound->content['payload'] ?? '');
@@ -292,7 +316,14 @@ class BotEngine
             }
         }
 
-        // 2. Keywords (text, quick-reply button text, interactive reply title)
+        // 2. Any message — every incoming message of any type (highest priority first)
+        $any = $flows->first(fn (BotFlow $f) => $f->trigger_type === 'any' && ! ($skipAnyFlows && $skipAnyFlows($f)));
+
+        if ($any) {
+            return [$any, null, null, false];
+        }
+
+        // 3. Keywords (text, quick-reply button text, interactive reply title)
         $text = (string) ($inbound->body ?? '');
 
         if ($text !== '') {
@@ -303,14 +334,14 @@ class BotEngine
             }
         }
 
-        // 3. Welcome — the contact's very first message to this number
+        // 4. Welcome — the contact's very first message to this number
         $welcome = $flows->firstWhere('trigger_type', 'welcome');
 
         if ($welcome && $conversation->messages()->where('direction', Message::IN)->count() === 1) {
             return [$welcome, null, null, false];
         }
 
-        // 4. Fallback
+        // 5. Fallback
         return [$flows->firstWhere('trigger_type', 'fallback'), null, null, false];
     }
 

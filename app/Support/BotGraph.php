@@ -40,7 +40,14 @@ class BotGraph
     public const SAVE_TO = ['none' => 'Only as a variable', 'name' => 'Contact name', 'email' => 'Contact email'];
 
     /** Condition rule kinds and their operators. */
-    public const CONDITION_KINDS = ['text' => 'Text / answer', 'time' => 'Business hours', 'tag' => 'Contact tag', 'new_contact' => 'New contact'];
+    public const CONDITION_KINDS = ['text' => 'Text / answer', 'message_type' => 'Message type (voice, picture…)', 'time' => 'Business hours', 'tag' => 'Contact tag', 'new_contact' => 'New contact'];
+
+    /** Condition "Message type" values (see BotEngine::messageTypeMatches). */
+    public const MESSAGE_TYPES = [
+        'text' => 'Text message', 'voice' => 'Voice note / audio', 'image' => 'Picture', 'video' => 'Video',
+        'document' => 'Document / file', 'sticker' => 'Sticker', 'location' => 'Location', 'contacts' => 'Contact card',
+        'button' => 'Button / menu reply', 'media' => 'Any media (picture, video, voice, file, sticker)',
+    ];
 
     public const TEXT_OPS = [
         'contains' => 'contains', 'equals' => 'is exactly', 'starts_with' => 'starts with', 'not_contains' => 'does not contain',
@@ -355,6 +362,12 @@ class BotGraph
                             $rule['to'] = trim((string) ($r['to'] ?? ''));
                             if ($days === [] || ! preg_match(self::TIME, $rule['from']) || ! preg_match(self::TIME, $rule['to'])) {
                                 $errors[] = "{$label}, rule {$n}: pick at least one day and a from / to time (HH:MM).";
+                            }
+                        } elseif ($kind === 'message_type') {
+                            $rule['op'] = ($r['op'] ?? 'is') === 'is_not' ? 'is_not' : 'is';
+                            $rule['mtype'] = (string) ($r['mtype'] ?? '');
+                            if (! array_key_exists($rule['mtype'], self::MESSAGE_TYPES)) {
+                                $errors[] = "{$label}, rule {$n}: choose the message type.";
                             }
                         } elseif ($kind === 'tag') {
                             $rule['op'] = ($r['op'] ?? 'has') === 'has_not' ? 'has_not' : 'has';

@@ -39,7 +39,7 @@ const TONES = {
     orange: 'bg-orange-50 text-orange-800 dark:bg-orange-500/10 dark:text-orange-300',
 };
 
-const newRule = () => ({ id: uid('r'), kind: 'text', subject: 'message', var: '', op: 'contains', value: '', days: [1, 2, 3, 4, 5], from: '09:00', to: '18:00' });
+const newRule = () => ({ id: uid('r'), kind: 'text', subject: 'message', var: '', op: 'contains', value: '', mtype: 'voice', days: [1, 2, 3, 4, 5], from: '09:00', to: '18:00' });
 
 const uid = (prefix) => prefix + Math.random().toString(36).slice(2, 8);
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -74,6 +74,7 @@ export default (cfg) => ({
     triggers: cfg.triggers,
     matches: cfg.matches,
     textOps: cfg.textOps,
+    messageTypes: cfg.messageTypes || {},
     tags: cfg.tags || {},
     meta: META,
     days: DAYS,
@@ -200,6 +201,7 @@ export default (cfg) => ({
         if (r.kind === 'time') return `${(r.days || []).map((d) => DAYS[d - 1]).join(',') || '—'} ${r.from}–${r.to}`;
         if (r.kind === 'tag') return `Tag ${r.op === 'has_not' ? 'is not' : 'is'} “${r.value || '…'}”`;
         if (r.kind === 'new_contact') return r.op === 'is_not' ? 'Returning contact' : 'New contact';
+        if (r.kind === 'message_type') return `Message ${r.op === 'is_not' ? 'is not' : 'is'} ${(this.messageTypes[r.mtype] || '…').toLowerCase()}`;
         const subject = r.subject === 'var' ? `{{${r.var || '…'}}}` : 'Message';
         const op = (this.textOps[r.op] || r.op).toLowerCase();
         return ['is_empty', 'not_empty'].includes(r.op) ? `${subject} ${op}` : `${subject} ${op} “${r.value || '…'}”`;

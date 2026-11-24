@@ -11,7 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * An automatic reply flow for one WhatsApp number.
  *
- * Triggers:  keyword (text matches), welcome (contact's first message),
+ * Triggers:  any (EVERY incoming message — text, voice, picture, video, file…),
+ *            keyword (text matches), welcome (contact's first message),
  *            fallback (nothing else matched), menu (only reachable from a menu button).
  * Content:   visual node graph (BotGraph, `graph` column) — or, for flows made
  *            before the visual builder, a linear list of `steps`.
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class BotFlow extends Model
 {
     public const TRIGGERS = [
+        'any' => 'Any message (every message, any type)',
         'keyword' => 'Keyword',
         'welcome' => 'Welcome (first message)',
         'fallback' => 'Fallback (no other match)',

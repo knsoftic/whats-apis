@@ -22,6 +22,7 @@
         'triggers' => \App\Models\BotFlow::TRIGGERS,
         'matches' => \App\Models\BotFlow::MATCHES,
         'textOps' => \App\Support\BotGraph::TEXT_OPS,
+        'messageTypes' => \App\Support\BotGraph::MESSAGE_TYPES,
         'tags' => $tags,
     ];
     $palette = ['text', 'menu', 'question', 'condition', 'image', 'document', 'handoff', 'goto'];
@@ -221,6 +222,11 @@
                                             @endforeach
                                         </div>
                                     </div>
+                                    <p x-show="s.trigger_type === 'any'" class="rounded-xl bg-brand-50 px-3 py-2 text-xs text-brand-900 dark:bg-brand-500/10 dark:text-brand-200">
+                                        Runs on <strong>every</strong> incoming message — text, voice note, picture, video, file, sticker, location — first message or not, keyword or not.
+                                        Keyword / Welcome / Fallback flows of this number don't run while it answers. Bot menu taps and Question answers still continue their own flow.
+                                        Set a <strong>Cooldown</strong> to answer at most once per X minutes per chat (other flows answer in between). Use a <strong>Condition → Message type</strong> node for a different reply per type.
+                                    </p>
                                     <div x-show="s.trigger_type === 'keyword'" class="space-y-3">
                                         <div>
                                             <label class="form-label">Keywords <span class="font-normal text-slate-400">(comma separated)</span></label>
@@ -351,7 +357,7 @@
                                         <div class="space-y-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
                                             <div class="flex items-center gap-1">
                                                 <span class="w-5 text-xs font-semibold text-slate-400" x-text="(i + 1) + '.'"></span>
-                                                <select class="form-input !py-1.5" x-model="rule.kind" @change="rule.op = ({ text: 'contains', tag: 'has', new_contact: 'is', time: 'contains' })[rule.kind]">
+                                                <select class="form-input !py-1.5" x-model="rule.kind" @change="rule.op = ({ text: 'contains', tag: 'has', new_contact: 'is', message_type: 'is', time: 'contains' })[rule.kind]; if (rule.kind === 'message_type' && !rule.mtype) rule.mtype = 'voice'">
                                                     @foreach (\App\Support\BotGraph::CONDITION_KINDS as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
                                                 </select>
                                                 <button type="button" class="rounded p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30" @click="moveRule(i, -1)" :disabled="i === 0" aria-label="Move up"><span class="block rotate-180" x-html="iconSvg('chevron-down')"></span></button>
@@ -377,6 +383,20 @@
                                                 <input type="text" class="form-input !py-1.5 text-xs" x-model="rule.value" maxlength="200" x-show="!['is_empty', 'not_empty'].includes(rule.op)"
                                                        :placeholder="['number_gt', 'number_lt'].includes(rule.op) ? '1000' : 'yes, haan, ji'">
                                                 <p class="text-[11px] text-slate-500" x-show="['contains', 'equals', 'starts_with', 'not_contains'].includes(rule.op)">Separate several words with commas — any of them matches. Not case-sensitive.</p>
+                                            </div>
+
+                                            {{-- message type --}}
+                                            <div x-show="rule.kind === 'message_type'" class="space-y-2">
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <select class="form-input !py-1.5 text-xs" x-model="rule.op" aria-label="Is / is not">
+                                                        <option value="is">message is</option>
+                                                        <option value="is_not">message is not</option>
+                                                    </select>
+                                                    <select class="form-input !py-1.5 text-xs" x-model="rule.mtype" aria-label="Message type">
+                                                        @foreach (\App\Support\BotGraph::MESSAGE_TYPES as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                                                    </select>
+                                                </div>
+                                                <p class="text-[11px] text-slate-500">E.g. with an <strong>Any message</strong> flow: voice note → “We got your voice note”, picture → “Thanks for the picture”.</p>
                                             </div>
 
                                             {{-- business hours --}}

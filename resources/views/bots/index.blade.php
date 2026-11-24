@@ -42,7 +42,7 @@
                                     <p class="text-xs text-slate-500">Priority {{ $flow->priority }}{{ $flow->cooldown_minutes ? ' · cooldown '.$flow->cooldown_minutes.' min' : '' }}</p>
                                 </td>
                                 <td class="text-xs">
-                                    <x-badge :color="match ($flow->trigger_type) { 'keyword' => 'blue', 'welcome' => 'green', 'fallback' => 'amber', default => 'slate' }">{{ \App\Models\BotFlow::TRIGGERS[$flow->trigger_type] ?? $flow->trigger_type }}</x-badge>
+                                    <x-badge :color="match ($flow->trigger_type) { 'any' => 'violet', 'keyword' => 'blue', 'welcome' => 'green', 'fallback' => 'amber', default => 'slate' }">{{ \App\Models\BotFlow::TRIGGERS[$flow->trigger_type] ?? $flow->trigger_type }}</x-badge>
                                     @if ($flow->trigger_type === 'keyword')
                                         <p class="mt-1 max-w-xs truncate text-slate-500">{{ \App\Models\BotFlow::MATCHES[$flow->match_type] ?? '' }}: {{ $flow->keywords }}</p>
                                     @endif

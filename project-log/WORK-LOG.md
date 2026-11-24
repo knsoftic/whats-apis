@@ -253,3 +253,20 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
   - `realtime-check` passed with Reverb running and caught a wrong app id.
   - Test messages deleted afterwards.
 - **Result:** ✅ 295 tests pass (ChatCountsTest 5).
+
+### 2026-11-24 · Bot Flows: "Any message" trigger + "Message type" condition
+- Request: a flow must start whenever a customer sends **anything**: any time, first message or not, keyword match or not, and voice notes, pictures and text alike.
+- New trigger **"Any message (every message, any type)"**. It runs for text, voice note/audio, picture, video, document, sticker, location, contact card and button replies.
+- Order of choice:
+  1. a tapped bot menu button, or the answer to a pending Question, continues its own flow;
+  2. **Any message** flows (highest priority first);
+  3. Keyword;
+  4. Welcome;
+  5. Fallback.
+  - So keyword, welcome and fallback flows don't answer while an Any-message flow does.
+- **Cooldown** on an Any-message flow means it answers at most once per X minutes per chat. In between, the normal keyword / welcome / fallback flows answer.
+- New Condition rule **"Message type"** (is / is not), with these values: text, voice/audio, picture, video, document, sticker, location, contact card, button reply, any media. Example: voice → "Thanks for the voice note", picture → "Nice picture", else → text reply.
+- Builder: a new radio option with a help box explaining the behaviour; the rule editor has the type picker and the rule label on the node; violet badge in the flow list.
+- Bots still pause in a chat for 60 min after an agent replies manually (unchanged), and still respect the plan's bot limits.
+- Checked in the in-app browser: picked the trigger (chip + help shown), added a Condition → Message type rule ("1. Message is voice note / audio" + Otherwise). Nothing saved.
+- **Result:** ✅ 300 tests pass (BotAnyMessageTest 5: all 7 message types, per-type replies, question/menu continuity, cooldown hand-over, builder save/validation).
