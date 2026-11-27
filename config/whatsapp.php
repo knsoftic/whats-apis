@@ -45,6 +45,11 @@ return [
         'retention_days' => (int) env('WHATSAPP_WEBHOOK_RETENTION_DAYS', 30),
     ],
 
+    'auto_reply' => [
+        // A rule without "also while chatting" stays quiet when an agent replied in the last N minutes.
+        'agent_active_minutes' => (int) env('WHATSAPP_AUTO_REPLY_AGENT_MINUTES', 30),
+    ],
+
     'bot' => [
         // After an agent replies manually, bots pause in that chat for this many minutes.
         'pause_after_agent_minutes' => (int) env('WHATSAPP_BOT_PAUSE_MINUTES', 60),

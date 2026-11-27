@@ -9,8 +9,11 @@
 @endphp
 <div class="flex flex-wrap items-center gap-1.5">
     @unless ($account->is_active)
-        <x-badge color="slate" dot>Disabled</x-badge>
+        <x-badge color="slate" dot title="Turned off in this app (Enabled switch) — not by Meta">Disabled here</x-badge>
     @endunless
+    @if ($restriction = $account->metaRestriction())
+        <x-badge color="red" dot :title="'Meta account_update for WABA '.($restriction['waba_id'] ?? $account->waba_id).' — other WhatsApp Business Accounts are not affected'">{{ $restriction['label'] }}</x-badge>
+    @endif
     <x-badge :color="$api[0]" dot :title="$account->api_status_message">{{ $api[1] }}</x-badge>
     <x-badge :color="$webhook[0]" dot>{{ $webhook[1] }}</x-badge>
     @unless ($compact)

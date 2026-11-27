@@ -124,7 +124,7 @@ export default function embeddedSignup(config) {
                 setTimeout(() => {
                     this._waiting = false;
                     this.complete();
-                }, 3000);
+                }, 6000);
                 return;
             }
 

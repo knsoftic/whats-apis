@@ -8,6 +8,7 @@
         ['label' => 'Leads', 'route' => 'leads.index', 'active' => 'leads.*', 'icon' => 'users', 'can' => P::CONTACTS_VIEW],
         ['label' => 'Message Templates', 'route' => 'templates.index', 'active' => 'templates.*', 'icon' => 'template', 'can' => P::TEMPLATES_VIEW],
         ['label' => 'Bot Flows', 'route' => 'bots.index', 'active' => 'bots.*', 'icon' => 'bolt', 'can' => P::BOTS_MANAGE],
+        ['label' => 'Auto Replies', 'route' => 'auto-replies.index', 'active' => 'auto-replies.*', 'icon' => 'reply', 'can' => P::BOTS_MANAGE],
         ['label' => 'WhatsApp Numbers', 'route' => 'accounts.index', 'active' => 'accounts.*', 'icon' => 'phone', 'can' => P::ACCOUNTS_MANAGE, 'customer_only' => true],
         ['label' => 'Billing & Plan', 'route' => 'billing.index', 'active' => 'billing.*', 'icon' => 'chart', 'can' => P::DASHBOARD_VIEW, 'customer_only' => true, 'role' => P::ROLE_CUSTOMER],
     ];

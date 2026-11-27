@@ -5,6 +5,18 @@
         <x-button icon="activity" :href="route('accounts.manage', $account)">WhatsApp Manager</x-button>
     </x-page-header>
 
+    {{-- Meta disabled / restricted THIS number's WhatsApp Business Account (account_update webhook) --}}
+    @if ($restriction = $account->metaRestriction())
+        <div class="mb-4 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-500/10 dark:text-rose-200">
+            <x-icon name="warning" class="h-5 w-5 shrink-0" />
+            <div>
+                <p class="font-semibold">{{ $restriction['label'] }} — WhatsApp Business Account {{ $restriction['waba_id'] ?? $account->waba_id }}</p>
+                <p class="mt-1">Reported by Meta {{ \Illuminate\Support\Carbon::parse($restriction['at'])->diffForHumans() }}@if (! empty($restriction['restrictions'])) ({{ implode(', ', array_map(fn ($r) => str_replace('_', ' ', strtolower($r)), $restriction['restrictions'])) }})@endif.
+                    Only numbers of <strong>this</strong> WABA are affected — your other WhatsApp Business Accounts keep working. Check Meta Business Support / WhatsApp Manager to appeal.</p>
+            </div>
+        </div>
+    @endif
+
     {{-- Health overview --}}
     <div class="grid gap-4 lg:grid-cols-3">
         @php

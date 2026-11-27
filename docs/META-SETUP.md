@@ -127,7 +127,7 @@ Meta can only call a **public HTTPS** URL with a valid certificate (self-signed 
    The account page now shows **Webhook verified**.
 3. **Webhook fields → Manage** → subscribe:
    - `messages` — **required** (incoming messages + sent / delivered / read / failed);
-   - recommended: `message_template_status_update`, `phone_number_quality_update`.
+   - recommended: `message_template_status_update`, `phone_number_quality_update`, `account_update` (Meta bans / restrictions — shown only on that WABA's numbers).
 
 > **One app = one callback URL.** If several numbers belong to the same Meta app, use the callback URL of any of them.
 > The app routes each event to the right number by `phone_number_id`, but only to numbers saved with the **same App Secret**, so data can never cross between different apps.

@@ -215,6 +215,32 @@ class WhatsAppAccount extends Model
      * Only an enabled account with confirmed API access and a verified webhook
      * counts as fully operational.
      */
+    /**
+     * Meta's latest "account_update" for THIS number's WABA (ban, violation, restriction).
+     * null = nothing reported. ['banned' => bool, 'label' => string, …]
+     *
+     * @return array<string, mixed>|null
+     */
+    public function metaRestriction(): ?array
+    {
+        $s = $this->phone_meta['meta_status'] ?? null;
+
+        if (! is_array($s) || ($s['ban_state'] ?? null) === 'REINSTATE' || ($s['event'] ?? null) === 'ACCOUNT_REINSTATED') {
+            return null;
+        }
+
+        $label = match (true) {
+            ($s['ban_state'] ?? null) === 'DISABLE' => 'Disabled by Meta',
+            ($s['ban_state'] ?? null) === 'SCHEDULE_FOR_DISABLE' => 'Meta will disable this WABA'.(isset($s['ban_date']) ? ' on '.$s['ban_date'] : ''),
+            ($s['event'] ?? null) === 'ACCOUNT_VIOLATION' => 'Policy violation'.(isset($s['violation']) ? ': '.str_replace('_', ' ', strtolower((string) $s['violation'])) : ''),
+            ($s['event'] ?? null) === 'ACCOUNT_RESTRICTION' => 'Restricted by Meta',
+            ($s['event'] ?? null) === 'ACCOUNT_DELETED' => 'WABA deleted in Meta',
+            default => null,
+        };
+
+        return $label ? $s + ['banned' => ($s['ban_state'] ?? null) === 'DISABLE', 'label' => $label] : null;
+    }
+
     public function isOperational(): bool
     {
         return $this->is_active && $this->isApiConnected() && $this->isWebhookVerified();

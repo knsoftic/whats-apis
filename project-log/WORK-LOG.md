@@ -290,3 +290,35 @@ Newest entries at the bottom. Each entry: date-time · phase · what was done ·
 - `docs/META-SETUP.md` Option B was rewritten as 13 steps with direct links (business portfolio, create app, WABA + number, IDs, App Secret, System User token, add in app, register, webhook, subscribe, publish, payment + test). Troubleshooting rows added.
 - The aaPanel install guide (Claude Doc) Step 7.2–7.3 was replaced with the same 12 steps in **Roman Urdu** (7.2–7.13).
 - **Result:** ✅ 304 tests pass (ManualRegistrationTest 4).
+
+### 2026-11-27 · Auto Replies (separate from Bot Flows) + fix: a banned WABA showing on other numbers
+**Request 1 — Auto Replies inside our software.** Read our own chat box: is this the customer's first message, or did they write before? Keep separate rules. Allow triggering even while a chat is ongoing. Always reply / auto reply / quick action buttons, **not linked to Bot Flows**.
+- New sidebar item **Auto Replies** (`/auto-replies`), with its own table, model, engine (`AutoReplyEngine`) and job (`RunAutoReplies`). Button ids are `ar:{rule}:{button}`.
+  - Bot Flows ignore `ar:` taps, and Auto Replies ignore `bf:` taps. Nothing else is shared.
+  - The Bot Flows pause does not apply to Auto Replies.
+- Triggers, all read from our chat history:
+  - **First message** (the customer never wrote to this number);
+  - **Returning customer** (wrote before; optionally only after N quiet hours);
+  - **Keyword**;
+  - **Every message**.
+- Options:
+  - message types (voice, picture …);
+  - time: any / during hours / **outside hours (away message)**;
+  - **"Also while an agent is chatting"** (off by default = quiet when an agent replied in the last 30 min);
+  - cooldown and priority. For each customer message, one reply comes from the highest-priority matching rule.
+- **Quick action buttons**: up to 3 per reply. A tap sends that button's own answer at once.
+- Form: presets (Welcome new customers / Welcome back / Away message / Always reply), a live WhatsApp preview, and placeholders `{{contact_name}}`, `{{business_name}}`, `{{phone}}`. In chat these messages show as "⚡ Auto reply · <rule>".
+- Plan: follows the plan's automation switch (allow_bot_flows), plus message limits.
+
+**Request 2 — one WABA banned, another healthy WABA also showed disabled.** Two causes found and fixed:
+1. **Webhook mix-up.** One Meta app has one callback URL, so the events of all WABAs/numbers come to one account's URL.
+   - Before: template-status and quality events were stored on the **account that owned the URL**, not on the WABA/number they were about. Meta's `account_update` (ban / restriction) was ignored.
+   - Now: the WABA is routed by `entry.id` and the number by `display_phone_number`, only within the same App Secret. Unknown WABAs or numbers are ignored and never pinned on the receiver.
+   - `account_update` is now handled: DISABLED_UPDATE (DISABLE / SCHEDULE_FOR_DISABLE / REINSTATE), ACCOUNT_VIOLATION, ACCOUNT_RESTRICTION, ACCOUNT_DELETED.
+   - The result shows a red **"Disabled by Meta"** badge and banner **only on that WABA's numbers**. The banner says the other WABAs are not affected.
+   - Our own switch is now labelled **"Disabled here"**, so it is not confused with a Meta ban.
+2. **Embedded Signup guessed the WABA.** If the Meta popup did not report which WABA was picked, the code took the **first** shared WABA, which can be the old banned one. That re-connected the banned number instead of the new one.
+   - Now it uses the only shared WABA that is not connected here yet, otherwise it asks to run the signup again. It also prefers a phone number that is not connected yet.
+   - The popup wait went from 3 s to 6 s.
+- Checked in the in-app browser: created an auto reply from the preset, switched to Keyword + outside hours (fields and preview updated), saved, and it showed in the list. The local test rule was deleted afterwards.
+- **Result:** ✅ 319 tests pass (AutoReplyTest 8, WabaIsolationTest 5, EmbeddedSignupTest +2).

@@ -151,6 +151,10 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:'.P::BOTS_MANAGE)->group(function () {
         Route::resource('bot-flows', BotFlowController::class)->except(['show'])->names('bots')->parameters(['bot-flows' => 'flow']);
         Route::patch('bot-flows/{flow}/toggle', [BotFlowController::class, 'toggle'])->name('bots.toggle');
+
+        // Auto Replies (always reply / auto reply / quick action buttons) — separate from Bot Flows.
+        Route::resource('auto-replies', \App\Http\Controllers\AutoReplyController::class)->except(['show'])->names('auto-replies')->parameters(['auto-replies' => 'rule']);
+        Route::patch('auto-replies/{rule}/toggle', [\App\Http\Controllers\AutoReplyController::class, 'toggle'])->name('auto-replies.toggle');
     });
     Route::patch('chat/conversations/{conversation}/bot', [BotFlowController::class, 'conversationBot'])
         ->middleware('permission:'.P::CHATS_VIEW)->name('chat.bot');

@@ -53,7 +53,21 @@ class EmbeddedSignupService
             throw new EmbeddedSignupException('The WhatsApp Business Account returned by the popup was not shared with this app. Please run “Connect with Meta” again.');
         }
 
-        $wabaId ??= $granted[0] ?? null;
+        // The popup normally tells us which WABA was picked. Without it, never guess between
+        // several shared WABAs (the first one may be an old / banned account): use the only
+        // one that is not connected here yet, else ask to run the signup again.
+        if (! $wabaId) {
+            $fresh = array_values(array_diff($granted, WhatsAppAccount::whereIn('waba_id', $granted)->pluck('waba_id')->map(fn ($id) => (string) $id)->all()));
+            $wabaId = match (true) {
+                count($granted) === 1 => $granted[0],
+                count($fresh) === 1 => $fresh[0],
+                default => null,
+            };
+
+            if (! $wabaId && count($granted) > 1) {
+                throw new EmbeddedSignupException('Meta did not say which WhatsApp Business Account you picked (you shared '.count($granted).'). Please run “Connect with Meta” again and wait until the popup closes by itself.');
+            }
+        }
 
         if (! $wabaId) {
             throw new EmbeddedSignupException('No WhatsApp Business Account was shared. Finish all steps in the Meta popup (including the phone number).');
@@ -72,7 +86,10 @@ class EmbeddedSignupService
 
         if (! $phoneId) {
             try {
-                $phoneId = WhatsAppCloudApiService::for(new WhatsAppAccount($credentials))->getWabaPhoneNumbers()[0]['id'] ?? null;
+                // Prefer a number of this WABA that is not connected here yet.
+                $ids = collect(WhatsAppCloudApiService::for(new WhatsAppAccount($credentials))->getWabaPhoneNumbers())->pluck('id')->map(fn ($id) => (string) $id);
+                $known = WhatsAppAccount::whereIn('phone_number_id', $ids)->pluck('phone_number_id')->map(fn ($id) => (string) $id);
+                $phoneId = $ids->diff($known)->first() ?? ($ids->count() === 1 ? $ids->first() : null);
             } catch (WhatsAppApiException $e) {
                 throw new EmbeddedSignupException('Could not read the phone numbers of the shared account: '.$e->userMessage());
             }

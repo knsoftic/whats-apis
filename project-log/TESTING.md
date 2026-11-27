@@ -86,3 +86,5 @@ Tests: 158 passed (613 assertions)   Duration: 19.4 s   Failed: 0
 | M21 | Chat: live mode shows new message instantly; Reverb stopped → auto-refresh within 5 s; sidebar badge, mini counters, tab counts, "(N)" title | ✅ | In-app browser, 2026-11-24 |
 | M22 | Live site: `php artisan whatsapp:realtime-check` all green after the update | ⏳ | Run on the server after the update |
 | M23 | Bot builder: "Any message" trigger + Condition → Message type rule (picker, node label, help) | ✅ | In-app browser, 2026-11-24 |
+| M24 | Auto Replies: preset form, Keyword + outside-hours fields, live preview with buttons, save → list | ✅ | In-app browser, 2026-11-27 |
+| M25 | Live: one WABA banned → only its numbers show "Disabled by Meta"; other WABAs unaffected | ⏳ | Needs a real account_update from Meta |

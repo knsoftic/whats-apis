@@ -35,18 +35,54 @@ class WebhookProcessor
         $payload = $event->decodedPayload();
 
         foreach ($payload['entry'] ?? [] as $entry) {
+            // entry.id = the WhatsApp Business Account (WABA) the event is about. One Meta app
+            // has ONE callback URL, so events of several WABAs / numbers can arrive at one
+            // account's URL — they must only touch the accounts they are about.
+            $wabaId = (string) ($entry['id'] ?? '');
+
             foreach ($entry['changes'] ?? [] as $change) {
                 $field = $change['field'] ?? 'messages';
                 $value = $change['value'] ?? [];
 
                 match ($field) {
                     'messages' => $this->handleMessagesChange($receiver, $value),
-                    'message_template_status_update' => $this->handleTemplateStatus($receiver, $value),
-                    'phone_number_quality_update' => $this->handleQualityUpdate($receiver, $value),
+                    'message_template_status_update' => $this->wabaAccounts($receiver, $wabaId)->each(fn ($a) => $this->handleTemplateStatus($a, $value)),
+                    'phone_number_quality_update' => $this->handleQualityUpdate($receiver, $wabaId, $value),
+                    'account_update' => $this->handleAccountUpdate($receiver, $wabaId, $value),
                     default => Log::info('WhatsApp webhook field ignored', ['field' => $field, 'account' => $receiver->id]),
                 };
             }
         }
+    }
+
+    /**
+     * Accounts of one WABA that belong to the same (signature-verified) Meta app as the
+     * receiving account. Never other WABAs: a ban / quality / template event of one
+     * WhatsApp Business Account must not show up on another one.
+     *
+     * @return \Illuminate\Support\Collection<int, WhatsAppAccount>
+     */
+    private function wabaAccounts(WhatsAppAccount $receiver, string $wabaId): \Illuminate\Support\Collection
+    {
+        if ($wabaId === '' || $wabaId === (string) $receiver->waba_id) {
+            $wabaId = (string) $receiver->waba_id;
+        }
+
+        $accounts = WhatsAppAccount::where('waba_id', $wabaId)->get()
+            ->filter(fn (WhatsAppAccount $a) => $a->is($receiver) || hash_equals((string) $a->app_secret, (string) $receiver->app_secret))
+            ->values();
+
+        if ($accounts->isEmpty()) {
+            Log::info('WhatsApp webhook for a WABA that is not connected here ignored', ['receiver_account' => $receiver->id, 'waba_id' => $wabaId]);
+        }
+
+        return $accounts;
+    }
+
+    /** Digits only, for comparing "+92 300 1234567" with "923001234567". */
+    private static function digits(?string $phone): string
+    {
+        return preg_replace('/\D+/', '', (string) $phone);
     }
 
     /**
@@ -212,6 +248,11 @@ class WebhookProcessor
 
         MessageReceived::dispatch($message);
 
+        // Auto Replies and Bot Flows are two separate systems, each with its own job.
+        if (\App\Models\AutoReply::where('whatsapp_account_id', $account->id)->where('is_active', true)->exists()) {
+            \App\Jobs\RunAutoReplies::dispatch($message->id)->onQueue(config('whatsapp.queue'));
+        }
+
         if (\App\Models\BotFlow::where('whatsapp_account_id', $account->id)->where('is_active', true)->exists()) {
             \App\Jobs\RunBotFlow::dispatch($message->id)->onQueue(config('whatsapp.queue'));
         }
@@ -331,13 +372,64 @@ class WebhookProcessor
     /**
      * @param  array<string, mixed>  $value
      */
-    private function handleQualityUpdate(WhatsAppAccount $account, array $value): void
+    private function handleQualityUpdate(WhatsAppAccount $receiver, string $wabaId, array $value): void
     {
+        // The event names the number by display_phone_number (no phone_number_id) → match it
+        // inside that WABA only. Unknown number → ignore (never pin it on the wrong account).
+        $accounts = $this->wabaAccounts($receiver, $wabaId);
+        $number = self::digits($value['display_phone_number'] ?? null);
+        $account = $number !== ''
+            ? $accounts->first(fn (WhatsAppAccount $a) => self::digits($a->display_phone_number) === $number)
+            : ($accounts->count() === 1 ? $accounts->first() : null);
+
+        if (! $account) {
+            Log::info('WhatsApp quality update for a number that is not connected here ignored', ['receiver_account' => $receiver->id, 'waba_id' => $wabaId]);
+
+            return;
+        }
+
         $meta = $account->phone_meta ?? [];
         $meta['quality_event'] = $value['event'] ?? null;
         $meta['messaging_limit'] = $value['current_limit'] ?? null;
         $meta['quality_event_at'] = now()->toIso8601String();
 
         $account->forceFill(['phone_meta' => $meta])->save();
+    }
+
+    /**
+     * "account_update": Meta disabled / reinstated a WABA, a policy violation, a restriction …
+     * Stored on the accounts of THAT WABA only (or that one number when Meta names it),
+     * so the other WhatsApp Business Accounts of the same business portfolio stay untouched.
+     *
+     * @param  array<string, mixed>  $value
+     */
+    private function handleAccountUpdate(WhatsAppAccount $receiver, string $wabaId, array $value): void
+    {
+        $accounts = $this->wabaAccounts($receiver, $wabaId);
+        $number = self::digits($value['phone_number'] ?? null);
+
+        if ($number !== '') {
+            $one = $accounts->filter(fn (WhatsAppAccount $a) => self::digits($a->display_phone_number) === $number);
+            $accounts = $one->isNotEmpty() ? $one : $accounts;
+        }
+
+        $event = strtoupper((string) ($value['event'] ?? ''));
+        $status = array_filter([
+            'event' => $event ?: null,
+            'ban_state' => isset($value['ban_info']['waba_ban_state']) ? strtoupper((string) $value['ban_info']['waba_ban_state']) : null,
+            'ban_date' => $value['ban_info']['waba_ban_date'] ?? null,
+            'violation' => $value['violation_info']['violation_type'] ?? null,
+            'restrictions' => collect($value['restriction_info'] ?? [])->pluck('restriction_type')->filter()->values()->all() ?: null,
+            'waba_id' => $wabaId ?: null,
+            'at' => now()->toIso8601String(),
+        ], fn ($v) => $v !== null);
+
+        foreach ($accounts as $account) {
+            $meta = $account->phone_meta ?? [];
+            $meta['meta_status'] = $status;
+            $account->forceFill(['phone_meta' => $meta])->save();
+
+            Log::warning('Meta account update', ['account' => $account->id, 'waba_id' => $wabaId] + $status);
+        }
     }
 }

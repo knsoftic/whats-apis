@@ -198,4 +198,31 @@ class EmbeddedSignupTest extends TestCase
 
         $this->assertSame($this->phone, WhatsAppAccount::firstOrFail()->phone_number_id);
     }
+
+    public function test_without_popup_ids_the_waba_not_connected_yet_is_used_never_an_old_one(): void
+    {
+        $this->configurePlatform(webhookVerified: true);
+        // An older (e.g. banned) WABA of the same business is already connected here.
+        $old = WhatsAppAccount::factory()->create(['waba_id' => '200000000000066', 'phone_number_id' => '100000000000066', 'is_active' => false]);
+        $this->fakeMetaSignup(grantedWabas: ['200000000000066', $this->waba]);
+
+        $this->actingAs($this->admin())->postJson('/whatsapp-accounts/embedded-signup', $this->payload(['phone_number_id' => null, 'waba_id' => null]))
+            ->assertOk()->assertJsonPath('created', true);
+
+        $new = WhatsAppAccount::whereKeyNot($old->id)->firstOrFail();
+        $this->assertSame($this->waba, $new->waba_id);
+        $this->assertSame($this->phone, $new->phone_number_id);
+        $this->assertFalse($old->fresh()->is_active); // the old account is left alone
+    }
+
+    public function test_without_popup_ids_and_several_new_wabas_it_asks_to_retry_instead_of_guessing(): void
+    {
+        $this->configurePlatform(webhookVerified: true);
+        $this->fakeMetaSignup(grantedWabas: ['200000000000055', $this->waba]);
+
+        $this->actingAs($this->admin())->postJson('/whatsapp-accounts/embedded-signup', $this->payload(['phone_number_id' => null, 'waba_id' => null]))
+            ->assertStatus(422)->assertJsonPath('message', fn ($m) => str_contains($m, 'did not say which WhatsApp Business Account'));
+
+        $this->assertSame(0, WhatsAppAccount::count());
+    }
 }

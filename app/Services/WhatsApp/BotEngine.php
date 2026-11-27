@@ -48,6 +48,11 @@ class BotEngine
             return null;
         }
 
+        // A tapped Auto Reply quick action button ("ar:…") belongs to Auto Replies, not to a flow.
+        if (str_starts_with((string) ($inbound->content['reply']['id'] ?? $inbound->content['payload'] ?? ''), \App\Models\AutoReply::PAYLOAD_PREFIX)) {
+            return null;
+        }
+
         $account = $inbound->account;
         $conversation = $inbound->conversation;
 
